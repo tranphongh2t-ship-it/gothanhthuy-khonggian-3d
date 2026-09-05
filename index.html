@@ -166,25 +166,25 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 // Màu tham khảo từ ảnh thật các mã (LP/LB/TT) trong catalog.
 const WOODS = [
   { group: 'OAK · Vân Sồi', items: [
-    { name: 'French Oak',        sku: 'LP 387EV',   c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
-    { name: 'Oak Santana',       sku: 'LP 388EV',   c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
-    { name: 'Sonama Oak',        sku: 'LP 389EV',   c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
-    { name: 'Riviera Oak',       sku: 'LP 428T',    c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
-    { name: 'Banstead Oak',      sku: 'LP 611WN',   c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
-    { name: 'Metallic Oak',      sku: 'LP 240T',    c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
+    { name: 'French Oak',        sku: 'LP 387EV',   tex: 'textures/lp-387.webp', c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
+    { name: 'Oak Santana',       sku: 'LP 388EV',   tex: 'textures/lp-388.webp', c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
+    { name: 'Sonama Oak',        sku: 'LP 389EV',   tex: 'textures/lp-389.webp', c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
+    { name: 'Riviera Oak',       sku: 'LP 428T',    tex: 'textures/lp-428.webp', c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
+    { name: 'Banstead Oak',      sku: 'LP 611WN',   tex: 'textures/lp-611.webp', c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
+    { name: 'Metallic Oak',      sku: 'LP 240T',    tex: 'textures/lp-240.webp', c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
   ]},
   { group: 'WALNUT · Vân Óc Chó', items: [
-    { name: 'Classical Walnut',  sku: 'LP 319EV',   c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
-    { name: 'Virgina Walnut',    sku: 'LP 332WN',   c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
-    { name: 'Columbia Walnut',   sku: 'LP 333WN',   c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
-    { name: 'Plum Walnut',       sku: 'LP 335T',    c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
-    { name: 'Snug Walnut',       sku: 'LP 612WN',   c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
-    { name: 'Lyon Walnut',       sku: 'LP 448EV',   c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
+    { name: 'Classical Walnut',  sku: 'LP 319EV',   tex: 'textures/lp-319.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
+    { name: 'Virgina Walnut',    sku: 'LP 332WN',   tex: 'textures/lp-332.webp', c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
+    { name: 'Columbia Walnut',   sku: 'LP 333WN',   tex: 'textures/lp-333.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
+    { name: 'Plum Walnut',       sku: 'LP 335T',    tex: 'textures/lp-335.webp', c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
+    { name: 'Snug Walnut',       sku: 'LP 612WN',   tex: 'textures/lp-612.webp', c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
+    { name: 'Lyon Walnut',       sku: 'LP 448EV',   tex: 'textures/lp-448.webp', c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
   ]},
   { group: 'WOODGRAIN · Tấm TT', items: [
-    { name: 'Bavarian Beech',    sku: 'TT 212',     c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
-    { name: 'White Beech',       sku: 'TT 217',     c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
-    { name: 'Jasmund Beech',     sku: 'TT 452',     c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
+    { name: 'Bavarian Beech',    sku: 'TT 212',     tex: 'textures/tt-212.webp', c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
+    { name: 'White Beech',       sku: 'TT 217',     tex: 'textures/tt-217.webp', c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
+    { name: 'Jasmund Beech',     sku: 'TT 452',     tex: 'textures/tt-452.webp', c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
   ]},
   { group: 'MÀU TỰ NHIÊN', items: [
     { name: 'Gỗ tếch (Teak)',    sku: 'TE-01',      c1: '#b58250', c2: '#7c5227', grain: 2, twist: .09 },
@@ -192,6 +192,22 @@ const WOODS = [
     { name: 'Phong (Maple)',     sku: 'MP-01',      c1: '#e2cfae', c2: '#c0a378', grain: 3.4, twist: .03 },
   ]},
 ];
+
+// Texture ảnh thật từ kho Thanh Thùy — preload, fallback vẽ canvas cho mã không có ảnh.
+const photoTex = new Map(); // path -> THREE.Texture (RepeatWrapping, sRGB)
+const texLoader = new THREE.TextureLoader();
+function loadPhotoTextures() {
+  WOODS.forEach(g => g.items.forEach(w => {
+    if (!w.tex || photoTex.has(w.tex)) return;
+    const t = texLoader.load(w.tex, tx => {
+      tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
+      tx.colorSpace = THREE.SRGBColorSpace;
+      tx.anisotropy = 4;
+      tx.needsUpdate = true;
+    });
+    photoTex.set(w.tex, t);
+  }));
+}
 
 // Sinh texture vân gỗ (seamless) bằng canvas — lặp theo chiều dài tấm.
 function makeWoodTexture(w, tileLen = 1) {
@@ -413,6 +429,16 @@ function buildWoodPanel() {
         tctx.stroke();
       }
       cv.getContext('2d').drawImage(tmp, 0, 0, 84, 84);
+      // nếu có ảnh thật — vẽ đè ảnh sản phẩm lên thumbnail
+      if (w.tex) {
+        const img = new Image();
+        img.onload = () => {
+          const g = cv.getContext('2d');
+          const s = Math.max(img.width / 84, img.height / 84);
+          g.drawImage(img, (img.width - 84 * s) / 2, (img.height - 84 * s) / 2, 84 * s, 84 * s, 0, 0, 84, 84);
+        };
+        img.src = w.tex;
+      }
       item.addEventListener('click', () => {
         selectWood(key, w);
         document.querySelectorAll('.wood-item').forEach(el => el.classList.remove('selected'));
@@ -456,9 +482,15 @@ function applyWood(mesh) {
   if (!entry) {
     const b = new THREE.Box3().setFromObject(mesh);
     const diag = b.getSize(new THREE.Vector3()).length();
-    const tex = makeWoodTexture(w, diag > 1.4 ? diag / 2.2 : 1);
-    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.04, envMapIntensity: 0.6 });
-    entry = { tex, mat };
+    const mat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.04, envMapIntensity: 0.6 });
+    if (w.tex && photoTex.has(w.tex)) {
+      const tex = photoTex.get(w.tex);
+      tex.repeat.set(2, 2); // lặp tấm ván theo bề mặt
+      mat.map = tex;
+    } else {
+      mat.map = makeWoodTexture(w, diag > 1.4 ? diag / 2.2 : 1);
+    }
+    entry = { tex: mat.map, mat };
     woodCache.set(key, entry);
   }
   mesh.material = entry.mat;
@@ -625,6 +657,7 @@ $('closePanel').addEventListener('click', () => $('woodPanel').classList.remove(
 
 renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
+loadPhotoTextures(); // preload ảnh vân gỗ thật (sớm, song song với model)
 loadModel();
 </script>
 </body>

@@ -26,6 +26,7 @@ GitHub Pages: **https://tranphongh2t-ship-it.github.io/gothanhthuy-khonggian-3d/
 ```
 ├── index.html            Viewer (tự chứa: Three.js + thư viện load từ CDN)
 ├── models/kitchen-draco.glb   Model phòng bếp (6 MB, Draco)
+├── textures/             15 ảnh vân gỗ thật (webp 1024px, ~600 KB tổng)
 └── README.md
 ```
 
@@ -44,8 +45,8 @@ GitHub Pages: **https://tranphongh2t-ship-it.github.io/gothanhthuy-khonggian-3d/
 - Đặt tên material gợi ý bề mặt (`PISO`/sàn, `PARED`/tường, `TECHO`/trần, `MADERA`/tủ…) — khi bấm vào mesh, viewer hiển thị tên bề mặt đó.
 - Tránh gộp cả phòng vào 1 mesh duy nhất (khi đó chỉ đổi được 1 bề mặt).
 
-## Vật liệu gỗ
-
-18 vân gỗ Thanh Thùy (LP Oak / LP Walnut / TT Woodgrain / màu tự nhiên) — khai báo
-trong mảng `WOODS` đầu file `index.html`, vân được sinh seamless bằng canvas nên
-không cần file ảnh.
+## Vật liệu gỗ18 vân gỗ Thanh Thùy (LP Oak / LP Walnut / TT Woodgrain / màu tự nhiên) — khai báo
+trong mảng `WOODS` đầu file `index.html`. 15 mẫu (LP + TT) dùng **ảnh sản phẩm thật**
+trong `textures/` (webp 1024px, tile seamless), 3 mẫu màu tự nhiên còn lại sinh bằng
+canvas — thêm ảnh mới chỉ cần bỏ file vào `textures/` và thêm dòng `tex: 'textures/ten-file.webp'`
+vào mục tương ứng trong `WOODS`.
