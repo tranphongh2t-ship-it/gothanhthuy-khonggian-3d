@@ -858,13 +858,13 @@ function setMode(m) {
         walk.yaw = euler.y; walk.pitch = euler.x;
       } catch(e) { walk.yaw = 0; walk.pitch = 0; }
     } else {
-      controls.enabled = true;
-      try { controls.reset(); } catch(e) {
-        // Nếu reset fail thì set lại thủ công
-        controls.target.set(0, 1.35, 0);
-        initCamera();
-      }
+      // Thoát walk: tắt pointer lock, tắt WASD
       try { if (document.pointerLockElement) document.exitPointerLock(); } catch(e) {}
+      walk.keys = {};
+      // Re-init controls thủ công (không dùng reset)
+      controls.enabled = true;
+      controls.target.set(0, 1.35, 0);
+      initCamera();
     }
   } catch(err) { console.warn('setMode error:', err); }
 }
