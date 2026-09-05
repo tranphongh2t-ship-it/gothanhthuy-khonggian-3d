@@ -832,16 +832,26 @@ $('btnPick').addEventListener('click', () => togglePick());
    ORBIT / WALK
 ========================================================= */
 function setMode(m) {
-  mode = m;
-  $('hudOrbit').classList.toggle('active', m === 'orbit');
-  $('hudWalk').classList.toggle('active', m === 'walk');
-  $('btnOrbit').classList.toggle('active', m === 'orbit');
-  $('btnWalk').classList.toggle('active', m === 'walk');
-  renderer.domElement.classList.toggle('walking', m === 'walk');
-  $('walkHint').style.display = m === 'walk' ? 'block' : 'none';
-  controls.enabled = m !== 'walk';
-  if (m === 'walk') controls.saveState();
-  if (m === 'orbit') camera.rotation.order = 'XYZ';
+  try {
+    mode = m;
+    $('hudOrbit').classList.toggle('active', m === 'orbit');
+    $('hudWalk').classList.toggle('active', m === 'walk');
+    $('btnOrbit').classList.toggle('active', m === 'orbit');
+    $('btnWalk').classList.toggle('active', m === 'walk');
+    renderer.domElement.classList.toggle('walking', m === 'walk');
+    $('walkHint').style.display = m === 'walk' ? 'block' : 'none';
+    if (m === 'walk') {
+      controls.saveState();
+      controls.enabled = false;
+      // Khởi tạo euler từ camera hiện tại
+      euler.setFromQuaternion(camera.quaternion);
+      walk.yaw = euler.y; walk.pitch = euler.x;
+    } else {
+      controls.enabled = true;
+      controls.reset();
+      if (document.pointerLockElement) document.exitPointerLock();
+    }
+  } catch(err) { console.warn('setMode error:', err); }
 }
 function toggleWalk(force) {
   const want = force !== undefined ? force : mode !== 'walk';
@@ -860,7 +870,7 @@ const fwd = new THREE.Vector3(), right = new THREE.Vector3();
 
 function walkMouseDown(e) {
   if (document.pointerLockElement) return;
-  renderer.domElement.requestPointerLock();
+  try { renderer.domElement.requestPointerLock(); } catch(err) { console.warn('PointerLock failed:', err); }
 }
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement === renderer.domElement && mode === 'walk') {
@@ -869,33 +879,48 @@ document.addEventListener('pointerlockchange', () => {
   }
 });
 document.addEventListener('mousemove', e => {
-  if (document.pointerLockElement !== renderer.domElement || mode !== 'walk') return;
-  const s = 0.0024;
-  walk.yaw -= e.movementX * s;
-  walk.pitch -= e.movementY * s;
-  walk.pitch = Math.max(-1.45, Math.min(1.45, walk.pitch));
-  camera.quaternion.setFromEuler(new THREE.Euler(walk.pitch, walk.yaw, 0, 'YXZ'));
+  try {
+    if (document.pointerLockElement !== renderer.domElement || mode !== 'walk') return;
+    const s = 0.0024;
+    walk.yaw -= e.movementX * s;
+    walk.pitch -= e.movementY * s;
+    walk.pitch = Math.max(-1.45, Math.min(1.45, walk.pitch));
+    camera.quaternion.setFromEuler(new THREE.Euler(walk.pitch, walk.yaw, 0, 'YXZ'));
+  } catch(err) { console.warn('Walk mousemove error:', err); }
 });
-document.addEventListener('keydown', e => { walk.keys[e.key.toLowerCase()] = true; if (e.key === 'Escape' && mode === 'walk') toggleWalk(false); });
-document.addEventListener('keyup', e => { walk.keys[e.key.toLowerCase()] = false; });
+document.addEventListener('keydown', e => {
+  try {
+    const k = e.key.toLowerCase();
+    if (walk.keys[k] !== undefined) walk.keys[k] = true;
+    if (e.key === 'Escape' && mode === 'walk') toggleWalk(false);
+  } catch(err) {}
+});
+document.addEventListener('keyup', e => {
+  try {
+    const k = e.key.toLowerCase();
+    if (walk.keys[k] !== undefined) walk.keys[k] = false;
+  } catch(err) {}
+});
 
 function updateWalk(dt) {
-  camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
-  right.crossVectors(fwd, camera.up).normalize();
-  const mv = new THREE.Vector3();
-  if (walk.keys['w']) mv.add(fwd);
-  if (walk.keys['s']) mv.sub(fwd);
-  if (walk.keys['d']) mv.add(right);
-  if (walk.keys['a']) mv.sub(right);
-  if (mv.lengthSq()) mv.normalize().multiplyScalar(dt * 2.2);
-  camera.position.add(mv);
-  camera.position.y = 1.6; // mắt người
-  // Camera clamp trong phòng
-  if (roomBox) {
-    const M = 0.3;
-    camera.position.x = Math.max(roomBox.min.x + M, Math.min(roomBox.max.x - M, camera.position.x));
-    camera.position.z = Math.max(roomBox.min.z + M, Math.min(roomBox.max.z - M, camera.position.z));
-  }
+  try {
+    camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+    right.crossVectors(fwd, camera.up).normalize();
+    const mv = new THREE.Vector3();
+    if (walk.keys['w']) mv.add(fwd);
+    if (walk.keys['s']) mv.sub(fwd);
+    if (walk.keys['d']) mv.add(right);
+    if (walk.keys['a']) mv.sub(right);
+    if (mv.lengthSq()) mv.normalize().multiplyScalar(dt * 2.2);
+    camera.position.add(mv);
+    camera.position.y = 1.6; // mắt người
+    // Camera clamp trong phòng
+    if (roomBox) {
+      const M = 0.3;
+      camera.position.x = Math.max(roomBox.min.x + M, Math.min(roomBox.max.x - M, camera.position.x));
+      camera.position.z = Math.max(roomBox.min.z + M, Math.min(roomBox.max.z - M, camera.position.z));
+    }
+  } catch(err) { console.warn('updateWalk error:', err); }
 }
 
 /* =========================================================
@@ -903,27 +928,29 @@ function updateWalk(dt) {
 ========================================================= */
 const clock = new THREE.Clock();
 function clampCamera() {
-  if (!roomBox || mode === 'walk') return;
-  // Clamp camera position inside room bounds
+  if (!roomBox) return;
   const MARGIN = 0.3;
   camera.position.x = Math.max(roomBox.min.x + MARGIN, Math.min(roomBox.max.x - MARGIN, camera.position.x));
   camera.position.z = Math.max(roomBox.min.z + MARGIN, Math.min(roomBox.max.z - MARGIN, camera.position.z));
-  camera.position.y = Math.max(roomBox.min.y + 1.0, Math.min(roomBox.max.y - 0.3, camera.position.y));
-  // Clamp controls target too
-  controls.target.x = Math.max(roomBox.min.x, Math.min(roomBox.max.x, controls.target.x));
-  controls.target.z = Math.max(roomBox.min.z, Math.min(roomBox.max.z, controls.target.z));
+  if (mode !== 'walk') {
+    camera.position.y = Math.max(roomBox.min.y + 1.0, Math.min(roomBox.max.y - 0.3, camera.position.y));
+    controls.target.x = Math.max(roomBox.min.x, Math.min(roomBox.max.x, controls.target.x));
+    controls.target.z = Math.max(roomBox.min.z, Math.min(roomBox.max.z, controls.target.z));
+  }
 }
 function loop() {
-  const dt = Math.min(clock.getDelta(), 0.05);
-  if (mode === 'walk') updateWalk(dt);
-  else controls.update();
-  clampCamera();
-  if (selected && selected.parent) {
-    const b = new THREE.Box3().setFromObject(selected);
-    const c = b.getCenter(new THREE.Vector3());
-    highlight.position.lerp(c, 0.35);
-  } else if (highlight.visible && !selected) highlight.visible = false;
-  renderer.render(scene, camera);
+  try {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    if (mode === 'walk') updateWalk(dt);
+    else if (controls.enabled) controls.update();
+    clampCamera();
+    if (selected && selected.parent) {
+      const b = new THREE.Box3().setFromObject(selected);
+      const c = b.getCenter(new THREE.Vector3());
+      highlight.position.lerp(c, 0.35);
+    } else if (highlight.visible && !selected) highlight.visible = false;
+    renderer.render(scene, camera);
+  } catch(err) { console.warn('Render loop error:', err); }
 }
 
 window.addEventListener('resize', () => {
