@@ -1000,7 +1000,7 @@ $('hudZoomIn').addEventListener('click', () => {
   try {
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
-    camera.position.addScaledVector(dir, 0.5);
+    camera.position.addScaledVector(dir, 0.15);
     clampCamera();
   } catch(e) {}
 });
@@ -1008,7 +1008,7 @@ $('hudZoomOut').addEventListener('click', () => {
   try {
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
-    camera.position.addScaledVector(dir, -0.8);
+    camera.position.addScaledVector(dir, -0.15);
     clampCamera();
   } catch(e) {}
 });
