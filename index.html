@@ -92,10 +92,33 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 #walkHint { position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%); background: rgba(16,16,16,.9); border: 1px solid rgba(255,255,255,.12); color: #bbb; font-size: 11.5px; padding: 7px 14px; border-radius: 20px; display: none; backdrop-filter: blur(10px); z-index: 9; white-space: nowrap; }
 #walkHint kbd { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 1px 5px; font-family: inherit; font-size: 10.5px; color: #eee; }
 
+/* === SURFACE PANEL (right drawer) === */
+#surfPanel { position: absolute; right: 0; top: 0; bottom: 0; width: 260px; background: rgba(14,14,14,.97); border-left: 1px solid #242424; backdrop-filter: blur(14px); transform: translateX(100%); transition: transform .25s ease; z-index: 21; display: flex; flex-direction: column; }
+#surfPanel.open { transform: translateX(0); box-shadow: -20px 0 40px rgba(0,0,0,.45); }
+.sp-head { padding: 14px 14px 8px; }
+.sp-head h3 { font-family: 'Arsenal', sans-serif; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 7px; }
+.sp-head h3 .tt { color: #eab308; }
+.sp-head p { font-size: 11px; color: #8a8a8a; margin-top: 4px; line-height: 1.45; }
+.sp-body { flex: 1; overflow-y: auto; padding: 8px 10px 14px; }
+.sp-body::-webkit-scrollbar { width: 6px; }
+.sp-body::-webkit-scrollbar-thumb { background: #2c2c2c; border-radius: 4px; }
+.surf-group { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa; padding: 10px 4px 5px; border-bottom: 1px solid #1e1e1e; }
+.surf-icon { font-size: 13px; }
+.surf-type { font-weight: 600; flex: 1; }
+.surf-count { background: #222; color: #888; font-size: 10px; padding: 1px 6px; border-radius: 10px; }
+.surf-item { width: 100%; text-align: left; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 8px; padding: 7px 10px; margin-bottom: 4px; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 8px; font-family: inherit; color: #ccc; font-size: 12px; }
+.surf-item:hover { background: rgba(255,255,255,.1); color: #fff; }
+.surf-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; flex-shrink: 0; transition: background .2s; }
+.surf-dot.changed { background: #eab308; box-shadow: 0 0 4px rgba(234,179,8,.5); }
+.surf-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-actions { padding: 8px 10px; border-top: 1px solid #222; }
+.sp-actions button { width: 100%; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.13); color: #ddd; padding: 8px 4px; border-radius: 8px; cursor: pointer; font-size: 11.5px; font-family: inherit; transition: all .15s; }
+.sp-actions button:hover { background: rgba(255,255,255,.15); }
+
 @media (max-width: 640px) {
   .header h1 { font-size: 12px; }
   .header .sku { display: none; }
-  #woodPanel { width: 88vw; }
+  #woodPanel, #surfPanel { width: 88vw; }
   #woodOpen { padding: 7px 10px; font-size: 11.5px; }
   .hud button { padding: 6px 8px; font-size: 11px; }
   .tool { width: 38px; height: 38px; font-size: 16px; }
@@ -119,6 +142,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     <button class="tool" id="btnWalk" title="Đi bộ"><span>🚶</span><span class="tip">Đi bộ trong phòng (WASD)</span></button>
     <button class="tool" id="btnReset" title="Đặt lại camera"><span>⌂</span><span class="tip">Đặt lại góc nhìn</span></button>
     <button class="tool" id="btnShare" title="Chia sẻ"><span>🔗</span><span class="tip">Sao chép link chia sẻ vân gỗ đang chọn</span></button>
+    <button class="tool" id="btnSurf" title="Danh sách bề mặt"><span>📋</span><span class="tip">Bề mặt có thể thay gỗ</span></button>
   </div>
 
   <button id="woodOpen"><span class="dot"></span>🪵 Vật liệu gỗ</button>
@@ -146,6 +170,17 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
       <button id="closePanel">✕ Đóng</button>
     </div>
   </div>
+
+  <div id="surfPanel">
+    <div class="sp-head">
+      <h3>📋 <span class="tt">Bề mặt trong phòng</span></h3>
+      <p>Bấm vào bề mặt bên dưới để chọn → sau đó mở 🪵 chọn vân gỗ để thay.</p>
+    </div>
+    <div class="sp-body" id="surfList"></div>
+    <div class="sp-actions">
+      <button id="surfClose">✕ Đóng</button>
+    </div>
+  </div>
 </div>
 
 <script type="importmap">
@@ -166,31 +201,137 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 // Vân gỗ theo nhóm sản phẩm Thanh Thùy: mỗi mẫu = 2 màu (sáng/tối) + hướng vân + độ thô.
 // Màu tham khảo từ ảnh thật các mã (LP/LB/TT) trong catalog.
 const WOODS = [
-  { group: 'OAK · Vân Sồi', items: [
-    { name: 'French Oak',        sku: 'LP 387EV',   slug: 'lp-387', src: 'LP 387EV', tex: 'textures/lp-387.webp', c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
-    { name: 'Oak Santana',       sku: 'LP 388EV',   slug: 'lp-388', src: 'LP 388EV', tex: 'textures/lp-388.webp', c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
-    { name: 'Sonama Oak',        sku: 'LP 389EV',   slug: 'lp-389', src: 'LP 389EV', tex: 'textures/lp-389.webp', c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
-    { name: 'Riviera Oak',       sku: 'LP 428T',    slug: 'lp-428', src: 'LP 428T', tex: 'textures/lp-428.webp', c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
-    { name: 'Banstead Oak',      sku: 'LP 611WN',   slug: 'lp-611', src: 'LP 611WN', tex: 'textures/lp-611.webp', c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
-    { name: 'Metallic Oak',      sku: 'LP 240T',    slug: 'lp-240', src: 'LP 240T', tex: 'textures/lp-240.webp', c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
+  { group: 'OAK · Vân Sồi (LP Laminate)', items: [
+    { name: 'French Oak',          sku: 'LP 387EV',   slug: 'lp-387', src: 'LP 387EV', tex: 'textures/lp-387.webp', c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
+    { name: 'Oak Santana',         sku: 'LP 388EV',   slug: 'lp-388', src: 'LP 388EV', tex: 'textures/lp-388.webp', c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
+    { name: 'Sonama Oak',          sku: 'LP 389EV',   slug: 'lp-389', src: 'LP 389EV', tex: 'textures/lp-389.webp', c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
+    { name: 'Riviera Oak',         sku: 'LP 428T',    slug: 'lp-428', src: 'LP 428T', tex: 'textures/lp-428.webp', c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
+    { name: 'Banstead Oak',        sku: 'LP 611WN',   slug: 'lp-611', src: 'LP 611WN', tex: 'textures/lp-611.webp', c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
+    { name: 'Metallic Oak',        sku: 'LP 240T',    slug: 'lp-240', src: 'LP 240T', tex: 'textures/lp-240.webp', c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
+    { name: 'Coburg Oak',          sku: 'LP 421WN',   slug: 'lp-421', src: 'LP 421WN', tex: 'textures/lp-421.webp', c1: '#b8935a', c2: '#7a5c30', grain: 2.5, twist: .06 },
+    { name: 'Canyon Monument Oak', sku: 'LP 445EV',   slug: 'lp-445', src: 'LP 445EV', tex: 'textures/lp-445.webp', c1: '#a07840', c2: '#6b4e24', grain: 3, twist: .05 },
+    { name: 'Canyon Monument Oak', sku: 'LP 444WN',   slug: 'lp-444', src: 'LP 444WN', tex: 'textures/lp-444.webp', c1: '#9e7642', c2: '#6a4d25', grain: 2.8, twist: .05 },
+    { name: 'Light Loft',          sku: 'LP 431T',    slug: 'lp-431', src: 'LP 431T', tex: 'textures/lp-431.webp', c1: '#d4c4a0', c2: '#a89060', grain: 2.2, twist: .04 },
+    { name: 'Kitami Ruester',      sku: 'LP 434WN',   slug: 'lp-434', src: 'LP 434WN', tex: 'textures/lp-434.webp', c1: '#b08850', c2: '#7a5c2e', grain: 3.1, twist: .05 },
+    { name: 'Kitami Ruester',      sku: 'LP 436T',    slug: 'lp-436', src: 'LP 436T', tex: 'textures/lp-436.webp', c1: '#b59058', c2: '#7e6032', grain: 2.9, twist: .05 },
   ]},
-  { group: 'WALNUT · Vân Óc Chó', items: [
-    { name: 'Classical Walnut',  sku: 'LP 319EV',   slug: 'lp-319', src: 'LP 319EV', tex: 'textures/lp-319.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
-    { name: 'Virgina Walnut',    sku: 'LP 332WN',   slug: 'lp-332', src: 'LP 332WN', tex: 'textures/lp-332.webp', c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
-    { name: 'Columbia Walnut',   sku: 'LP 333WN',   slug: 'lp-333', src: 'LP 333WN', tex: 'textures/lp-333.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
-    { name: 'Plum Walnut',       sku: 'LP 335T',    slug: 'lp-335', src: 'LP 335T', tex: 'textures/lp-335.webp', c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
-    { name: 'Snug Walnut',       sku: 'LP 612WN',   slug: 'lp-612', src: 'LP 612WN', tex: 'textures/lp-612.webp', c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
-    { name: 'Lyon Walnut',       sku: 'LP 448EV',   slug: 'lp-448', src: 'LP 448EV', tex: 'textures/lp-448.webp', c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
+  { group: 'WALNUT · Vân Óc Chó (LP Laminate)', items: [
+    { name: 'Classical Walnut',    sku: 'LP 319EV',   slug: 'lp-319', src: 'LP 319EV', tex: 'textures/lp-319.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
+    { name: 'Virgina Walnut',      sku: 'LP 332WN',   slug: 'lp-332', src: 'LP 332WN', tex: 'textures/lp-332.webp', c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
+    { name: 'Columbia Walnut',     sku: 'LP 333WN',   slug: 'lp-333', src: 'LP 333WN', tex: 'textures/lp-333.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
+    { name: 'Plum Walnut',         sku: 'LP 335T',    slug: 'lp-335', src: 'LP 335T', tex: 'textures/lp-335.webp', c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
+    { name: 'Snug Walnut',         sku: 'LP 612WN',   slug: 'lp-612', src: 'LP 612WN', tex: 'textures/lp-612.webp', c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
+    { name: 'Lyon Walnut',         sku: 'LP 448EV',   slug: 'lp-448', src: 'LP 448EV', tex: 'textures/lp-448.webp', c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
+    { name: 'Columbia Walnut',     sku: 'LP 426T',    slug: 'lp-426', src: 'LP 426T', tex: 'textures/lp-426.webp', c1: '#7d5235', c2: '#3d2613', grain: 2.5, twist: .07 },
+    { name: 'Pastiss Allower',     sku: 'LP 447WN',   slug: 'lp-447', src: 'LP 447WN', tex: 'textures/lp-447.webp', c1: '#8b5e3d', c2: '#4b2e19', grain: 2.7, twist: .06 },
+    { name: 'Walnut',              sku: 'LP 681WN',   slug: 'lp-681', src: 'LP 681WN', tex: 'textures/lp-681.webp', c1: '#825538', c2: '#422715', grain: 2.4, twist: .06 },
+    { name: 'Walnut',              sku: 'LP 682WN',   slug: 'lp-682', src: 'LP 682WN', tex: 'textures/lp-682.webp', c1: '#805437', c2: '#412614', grain: 2.3, twist: .06 },
+    { name: 'Walnut',              sku: 'LP 684WN',   slug: 'lp-684', src: 'LP 684WN', tex: 'textures/lp-684.webp', c1: '#7f5336', c2: '#402513', grain: 2.5, twist: .05 },
+    { name: 'D Walnut',            sku: 'LP D1',      slug: 'lp-d1',  src: 'LP D1', tex: 'textures/lp-d1.webp', c1: '#7a5035', c2: '#3e2412', grain: 2, twist: .05 },
   ]},
-  { group: 'WOODGRAIN · Tấm TT', items: [
-    { name: 'Bavarian Beech',    sku: 'TT 212',     slug: 'tt-212', src: 'TT 212', tex: 'textures/tt-212.webp', c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
-    { name: 'White Beech',       sku: 'TT 217',     slug: 'tt-217', src: 'TT 217', tex: 'textures/tt-217.webp', c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
-    { name: 'Jasmund Beech',     sku: 'TT 452',     slug: 'tt-452', src: 'TT 452', tex: 'textures/tt-452.webp', c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
+  { group: 'OAK · Vân Sồi (TTWO Melamine)', items: [
+    { name: 'Swiss Elm',           sku: 'TTWO 0029',  slug: 'ttwo-0029', src: 'TTWO 0029', tex: 'textures/ttwo-0029.webp', c1: '#c0a060', c2: '#806830', grain: 2.8, twist: .05 },
+    { name: 'Riviera Oak',         sku: 'TTWO 439',   slug: 'ttwo-0439', src: 'TTWO 439', tex: 'textures/ttwo-0439.webp', c1: '#c3985c', c2: '#825828', grain: 2.4, twist: .07 },
+    { name: 'Roman Oak',           sku: 'TTWO 142',   slug: 'ttwo-142', src: 'TTWO 142', tex: 'textures/ttwo-142.webp', c1: '#b89050', c2: '#7a5c2c', grain: 2.6, twist: .05 },
+    { name: 'Antique Oak',         sku: 'TTWO 161',   slug: 'ttwo-161', src: 'TTWO 161', tex: 'textures/ttwo-161.webp', c1: '#a88048', c2: '#6e5228', grain: 3, twist: .04 },
+    { name: 'Coburg Oak',          sku: 'TTWO 184',   slug: 'ttwo-184', src: 'TTWO 184', tex: 'textures/ttwo-184.webp', c1: '#b59058', c2: '#7a5c30', grain: 2.5, twist: .06 },
+    { name: 'Red Oak',             sku: 'TTWO 201',   slug: 'ttwo-201', src: 'TTWO 201', tex: 'textures/ttwo-201.webp', c1: '#b07848', c2: '#784828', grain: 2.7, twist: .05 },
+    { name: 'Metallic Oak',        sku: 'TTWO 240',   slug: 'ttwo-240', src: 'TTWO 240', tex: 'textures/ttwo-240.webp', c1: '#c5a875', c2: '#8e6e3c', grain: 2, twist: .03 },
+    { name: 'Silk Oak',            sku: 'TTWO 268',   slug: 'ttwo-268', src: 'TTWO 268', tex: 'textures/ttwo-268.webp', c1: '#c8b080', c2: '#987848', grain: 2.2, twist: .04 },
+    { name: 'Engineer Oak',        sku: 'TTWO 320',   slug: 'ttwo-320', src: 'TTWO 320', tex: 'textures/ttwo-320.webp', c1: '#a88850', c2: '#705828', grain: 2.8, twist: .05 },
+    { name: 'Modern Oak',          sku: 'TTWO 340',   slug: 'ttwo-340', src: 'TTWO 340', tex: 'textures/ttwo-340.webp', c1: '#ba9558', c2: '#7c6030', grain: 2.6, twist: .05 },
+    { name: 'WN Elegant Oak',      sku: 'TTWO 360',   slug: 'ttwo-360', src: 'TTWO 360', tex: 'textures/ttwo-360.webp', c1: '#b08850', c2: '#785828', grain: 2.4, twist: .06 },
+    { name: 'Flagstaff Oak',       sku: 'TTWO 384',   slug: 'ttwo-384', src: 'TTWO 384', tex: 'textures/ttwo-384.webp', c1: '#a88048', c2: '#705028', grain: 2.7, twist: .05 },
+    { name: 'New England Oak',     sku: 'TTWO 386',   slug: 'ttwo-386', src: 'TTWO 386', tex: 'textures/ttwo-386.webp', c1: '#b89050', c2: '#7c5c2c', grain: 2.5, twist: .05 },
+    { name: 'Begerac Oak',         sku: 'TTWO 416',   slug: 'ttwo-416', src: 'TTWO 416', tex: 'textures/ttwo-416.webp', c1: '#a88850', c2: '#705828', grain: 2.8, twist: .04 },
+    { name: 'Aspen Oak',           sku: 'TTWO 442',   slug: 'ttwo-442', src: 'TTWO 442', tex: 'textures/ttwo-442.webp', c1: '#c0a060', c2: '#886830', grain: 2.3, twist: .05 },
+    { name: 'Artisan Oak',         sku: 'TTWO 471',   slug: 'ttwo-471', src: 'TTWO 471', tex: 'textures/ttwo-471.webp', c1: '#b59058', c2: '#7a5c30', grain: 2.6, twist: .05 },
+    { name: 'Sunlight Oak',        sku: 'TTWO 708',   slug: 'ttwo-708', src: 'TTWO 708', tex: 'textures/ttwo-708.webp', c1: '#d0b878', c2: '#a08048', grain: 2.4, twist: .04 },
+    { name: 'Vintage Smoky Oak',   sku: 'TTWO 714',   slug: 'ttwo-714', src: 'TTWO 714', tex: 'textures/ttwo-714.webp', c1: '#9a7840', c2: '#645020', grain: 3, twist: .05 },
+    { name: 'Antique Oak',         sku: 'TTWO 722',   slug: 'ttwo-722', src: 'TTWO 722', tex: 'textures/ttwo-722.webp', c1: '#a08048', c2: '#685028', grain: 2.8, twist: .05 },
+    { name: 'Colorado Oak',         sku: 'TTWO 728',   slug: 'ttwo-728', src: 'TTWO 728', tex: 'textures/ttwo-728.webp', c1: '#b08850', c2: '#785828', grain: 2.5, twist: .05 },
+    { name: 'Cracked Oak',         sku: 'TTWO 742',   slug: 'ttwo-742', src: 'TTWO 742', tex: 'textures/ttwo-742.webp', c1: '#a88048', c2: '#705028', grain: 3.2, twist: .04 },
+    { name: 'Vogue Oak',           sku: 'TTWO 759',   slug: 'ttwo-759', src: 'TTWO 759', tex: 'textures/ttwo-759.webp', c1: '#c0a060', c2: '#886830', grain: 2.3, twist: .05 },
+    { name: 'Oak',                 sku: 'TTWO 783',   slug: 'ttwo-783', src: 'TTWO 783', tex: 'textures/ttwo-783.webp', c1: '#b89050', c2: '#7c5c2c', grain: 2.6, twist: .05 },
+    { name: 'Yellow Ash',          sku: 'TTWO 786',   slug: 'ttwo-786', src: 'TTWO 786', tex: 'textures/ttwo-786.webp', c1: '#d8c088', c2: '#a89050', grain: 2.4, twist: .04 },
+    { name: 'French Oak',          sku: 'TTWO 787',   slug: 'ttwo-787', src: 'TTWO 787', tex: 'textures/ttwo-787.webp', c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
+    { name: 'Sonoma Oak',          sku: 'TTWO 789',   slug: 'ttwo-789', src: 'TTWO 789', tex: 'textures/ttwo-789.webp', c1: '#d0b070', c2: '#987840', grain: 2.5, twist: .04 },
+    { name: 'Cracked Oak',         sku: 'TTWO 809',   slug: 'ttwo-809', src: 'TTWO 809', tex: 'textures/ttwo-809.webp', c1: '#a07840', c2: '#685028', grain: 3.1, twist: .04 },
+    { name: 'Moonline Oak',        sku: 'TTWO 810',   slug: 'ttwo-810', src: 'TTWO 810', tex: 'textures/ttwo-810.webp', c1: '#b89858', c2: '#806830', grain: 2.4, twist: .05 },
   ]},
-  { group: 'MÀU TỰ NHIÊN', items: [
-    { name: 'Gỗ tếch (Teak)',    sku: 'TE-01',      slug: 'te-01', src: 'TTWO 609', tex: 'textures/te-01.webp', c1: '#b58250', c2: '#7c5227', grain: 2, twist: .09 },
-    { name: 'Anh đào (Cherry)',  sku: 'CH-01',      slug: 'ch-01', src: 'TTWO 385', tex: 'textures/ch-01.webp', c1: '#b06a44', c2: '#74381f', grain: 1.8, twist: .08 },
-    { name: 'Phong (Maple)',     sku: 'MP-01',      slug: 'mp-01', src: 'TTWO 325', tex: 'textures/mp-01.webp', c1: '#e2cfae', c2: '#c0a378', grain: 3.4, twist: .03 },
+  { group: 'WALNUT · Vân Óc Chó (TTWO Melamine)', items: [
+    { name: 'Charcoal Grey Walnut',sku: 'TTWO 132',   slug: 'ttwo-132', src: 'TTWO 132', tex: 'textures/ttwo-132.webp', c1: '#6a5a4a', c2: '#3a2e20', grain: 2.2, twist: .05 },
+    { name: 'Natural Dark Walnut', sku: 'TTWO 139',   slug: 'ttwo-139', src: 'TTWO 139', tex: 'textures/ttwo-139.webp', c1: '#7a5038', c2: '#3e2614', grain: 2.4, twist: .06 },
+    { name: 'Classical Walnut',    sku: 'TTWO 319',   slug: 'ttwo-319', src: 'TTWO 319', tex: 'textures/ttwo-319.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
+    { name: 'Metallic Walnut',     sku: 'TTWO 311',   slug: 'ttwo-311', src: 'TTWO 311', tex: 'textures/ttwo-311.webp', c1: '#806040', c2: '#483020', grain: 2.3, twist: .05 },
+    { name: 'Natural Walnut',      sku: 'TTWO 329',   slug: 'ttwo-329', src: 'TTWO 329', tex: 'textures/ttwo-329.webp', c1: '#825538', c2: '#422715', grain: 2.5, twist: .06 },
+    { name: 'Natural Walnut',      sku: 'TTWO 331',   slug: 'ttwo-331', src: 'TTWO 331', tex: 'textures/ttwo-331.webp', c1: '#805437', c2: '#412614', grain: 2.4, twist: .06 },
+    { name: 'Virgina Walnut',      sku: 'TTWO 332',   slug: 'ttwo-332', src: 'TTWO 332', tex: 'textures/ttwo-332.webp', c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
+    { name: 'Columbia Walnut',     sku: 'TTWO 333',   slug: 'ttwo-333', src: 'TTWO 333', tex: 'textures/ttwo-333.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
+    { name: 'Plum Walnut',         sku: 'TTWO 335',   slug: 'ttwo-335', src: 'TTWO 335', tex: 'textures/ttwo-335.webp', c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
+    { name: 'Canadian Walnut',     sku: 'TTWO 336',   slug: 'ttwo-336', src: 'TTWO 336', tex: 'textures/ttwo-336.webp', c1: '#7c5035', c2: '#402513', grain: 2.3, twist: .06 },
+    { name: 'Dark Walnut',         sku: 'TTWO 338',   slug: 'ttwo-338', src: 'TTWO 338', tex: 'textures/ttwo-338.webp', c1: '#6a4430', c2: '#362010', grain: 2.5, twist: .05 },
+    { name: 'Silver Walnut',       sku: 'TTWO 350',   slug: 'ttwo-350', src: 'TTWO 350', tex: 'textures/ttwo-350.webp', c1: '#8a7060', c2: '#5a4030', grain: 2.2, twist: .05 },
+    { name: 'Colored Walnut',      sku: 'TTWO 370',   slug: 'ttwo-370', src: 'TTWO 370', tex: 'textures/ttwo-370.webp', c1: '#7a5538', c2: '#442a15', grain: 2.6, twist: .06 },
+    { name: 'Classical Walnut',    sku: 'TTWO 380',   slug: 'ttwo-380', src: 'TTWO 380', tex: 'textures/ttwo-380.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
+    { name: 'Lyon Walnut',         sku: 'TTWO 440',   slug: 'ttwo-440', src: 'TTWO 440', tex: 'textures/ttwo-440.webp', c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
+    { name: 'Colorado Walnut',     sku: 'TTWO 590',   slug: 'ttwo-590', src: 'TTWO 590', tex: 'textures/ttwo-590.webp', c1: '#7a5038', c2: '#3e2614', grain: 2.5, twist: .05 },
+    { name: 'Leiden Walnut',       sku: 'TTWO 571',   slug: 'ttwo-571', src: 'TTWO 571', tex: 'textures/ttwo-571.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .06 },
+    { name: 'Walnut',              sku: 'TTWO 577',   slug: 'ttwo-577', src: 'TTWO 577', tex: 'textures/ttwo-577.webp', c1: '#7c5035', c2: '#402513', grain: 2.3, twist: .06 },
+    { name: 'Walnut',              sku: 'TTWO 681',   slug: 'ttwo-681', src: 'TTWO 681', tex: 'textures/ttwo-681.webp', c1: '#825538', c2: '#422715', grain: 2.4, twist: .06 },
+    { name: 'Neo Fine Walnut',     sku: 'TTWO 613',   slug: 'ttwo-613', src: 'TTWO 613', tex: 'textures/ttwo-613.webp', c1: '#805437', c2: '#412614', grain: 2.3, twist: .05 },
+    { name: 'English Walnut',      sku: 'TTWO 614',   slug: 'ttwo-614', src: 'TTWO 614', tex: 'textures/ttwo-614.webp', c1: '#7a5038', c2: '#3e2614', grain: 2.5, twist: .06 },
+    { name: 'Twilight Walnut',     sku: 'TTWO 771',   slug: 'ttwo-771', src: 'TTWO 771', tex: 'textures/ttwo-771.webp', c1: '#6a4830', c2: '#362010', grain: 2.8, twist: .05 },
+    { name: 'Arizona Walnut',      sku: 'TTWO 776',   slug: 'ttwo-776', src: 'TTWO 776', tex: 'textures/ttwo-776.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .06 },
+    { name: 'Chocolat Walnut',     sku: 'TTWO 735',   slug: 'ttwo-735', src: 'TTWO 735', tex: 'textures/ttwo-735.webp', c1: '#6a4430', c2: '#362010', grain: 2.6, twist: .05 },
+    { name: 'Wenge',               sku: 'TTWO 725',   slug: 'ttwo-725', src: 'TTWO 725', tex: 'textures/ttwo-725.webp', c1: '#3a2e20', c2: '#1e1410', grain: 2, twist: .04 },
+    { name: 'American Black Walnut',sku: 'TTWO 861',  slug: 'ttwo-861', src: 'TTWO 861', tex: 'textures/ttwo-861.webp', c1: '#5a3828', c2: '#2e1a0e', grain: 2.5, twist: .05 },
+  ]},
+  { group: 'BEECH · Vân Dẻ Gai', items: [
+    { name: 'Bavarian Beech',      sku: 'TT 212',     slug: 'tt-212', src: 'TT 212', tex: 'textures/ttwo-212.webp', c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
+    { name: 'White Beech',         sku: 'TT 217',     slug: 'tt-217', src: 'TT 217', tex: 'textures/ttwo-217.webp', c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
+    { name: 'Jasmund Beech',       sku: 'TT 452',     slug: 'tt-452', src: 'TT 452', tex: 'textures/ttwo-452.webp', c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
+  ]},
+  { group: 'HICKORY · Vân Dẻ Gai Mỹ', items: [
+    { name: 'Natural Hickory',     sku: 'LP 668T',    slug: 'lp-668', src: 'LP 668T', tex: 'textures/lp-668.webp', c1: '#b08050', c2: '#705028', grain: 3.2, twist: .06 },
+    { name: 'Breeze Hickory',      sku: 'TTWO 581',   slug: 'ttwo-581', src: 'TTWO 581', tex: 'textures/ttwo-581.webp', c1: '#a88048', c2: '#6e5228', grain: 3, twist: .05 },
+    { name: 'Natural Hickory',     sku: 'TTWO 668',   slug: 'ttwo-668', src: 'TTWO 668', tex: 'textures/ttwo-668.webp', c1: '#b08050', c2: '#705028', grain: 3.2, twist: .06 },
+  ]},
+  { group: 'ACACIA · Vân Acacia', items: [
+    { name: 'Moldau Acacia',       sku: 'LP 502T',    slug: 'lp-502', src: 'LP 502T', tex: 'textures/lp-502.webp', c1: '#9a7040', c2: '#5e4020', grain: 2.8, twist: .07 },
+    { name: 'Moldau Acacia',       sku: 'TTWO 501',   slug: 'ttwo-501', src: 'TTWO 501', tex: 'textures/ttwo-501.webp', c1: '#9a7040', c2: '#5e4020', grain: 2.8, twist: .07 },
+  ]},
+  { group: 'MAPLE / CHERRY · Vân Phong / Anh Đào', items: [
+    { name: 'Wyoming Maple',       sku: 'LP 404WN',   slug: 'lp-404', src: 'LP 404WN', tex: 'textures/lp-404.webp', c1: '#dcc8a0', c2: '#b09868', grain: 3, twist: .03 },
+    { name: 'Autumn Cherry',       sku: 'LP 209T',    slug: 'lp-209', src: 'LP 209T', tex: 'textures/lp-209.webp', c1: '#b07048', c2: '#784028', grain: 2, twist: .07 },
+    { name: 'Maple',               sku: 'TTWO 325',   slug: 'ttwo-325', src: 'TTWO 325', tex: 'textures/ttwo-325.webp', c1: '#e2cfae', c2: '#c0a378', grain: 3.4, twist: .03 },
+    { name: 'Autumn Cherry',       sku: 'TTWO 209',   slug: 'ttwo-209', src: 'TTWO 209', tex: 'textures/ttwo-209.webp', c1: '#b07048', c2: '#784028', grain: 2, twist: .07 },
+    { name: 'Natural Cherry',      sku: 'TTWO 385',   slug: 'ttwo-385', src: 'TTWO 385', tex: 'textures/ttwo-385.webp', c1: '#b06a44', c2: '#74381f', grain: 1.8, twist: .08 },
+    { name: 'Plur Cherry Wood',    sku: 'TTWO 524',   slug: 'ttwo-524', src: 'TTWO 524', tex: 'textures/ttwo-524.webp', c1: '#a86840', c2: '#703820', grain: 2, twist: .07 },
+    { name: 'Natural Maple',       sku: 'TTWO 740',   slug: 'ttwo-740', src: 'TTWO 740', tex: 'textures/ttwo-740.webp', c1: '#e0c8a0', c2: '#b89868', grain: 3.2, twist: .03 },
+    { name: 'Myoming Maple',       sku: 'TTWO 23015', slug: 'ttwo-23015', src: 'TTWO 23015', tex: 'textures/ttwo-23015.webp', c1: '#dcc8a0', c2: '#b09868', grain: 3, twist: .03 },
+  ]},
+  { group: 'TEAK · Vân Tếch', items: [
+    { name: 'Yellow Teak',         sku: 'TTWO 609',   slug: 'ttwo-609', src: 'TTWO 609', tex: 'textures/ttwo-609.webp', c1: '#b58250', c2: '#7c5227', grain: 2, twist: .09 },
+    { name: 'Maldives Teak',       sku: 'TTWO 750',   slug: 'ttwo-750', src: 'TTWO 750', tex: 'textures/ttwo-750.webp', c1: '#a87848', c2: '#704c24', grain: 2.2, twist: .08 },
+    { name: 'Sunset Teak',         sku: 'TTWO 737',   slug: 'ttwo-737', src: 'TTWO 737', tex: 'textures/ttwo-737.webp', c1: '#b88050', c2: '#805028', grain: 2.1, twist: .08 },
+  ]},
+  { group: 'SOLID · Màu Đặc', items: [
+    { name: 'White',               sku: 'LP 101T',    slug: 'lp-101', src: 'LP 101T', tex: 'textures/lp-101.webp', c1: '#e8e4dc', c2: '#d0ccc4', grain: 1, twist: .01 },
+    { name: 'Tortilla Grey',       sku: 'LP 102T',    slug: 'lp-102', src: 'LP 102T', tex: 'textures/lp-102.webp', c1: '#b0a898', c2: '#8a8278', grain: 1.2, twist: .02 },
+    { name: 'Magic Black',         sku: 'LP 230T',    slug: 'lp-230', src: 'LP 230T', tex: 'textures/lp-230.webp', c1: '#2a2826', c2: '#181614', grain: 1, twist: .01 },
+    { name: 'Latte',               sku: 'LP 026T',    slug: 'lp-026', src: 'LP 026T', tex: 'textures/lp-026.webp', c1: '#d8c8a8', c2: '#b0a080', grain: 1.2, twist: .02 },
+    { name: 'Tokai Lime',          sku: 'LP 413T',    slug: 'lp-413', src: 'LP 413T', tex: 'textures/lp-413.webp', c1: '#c8d0a0', c2: '#98a070', grain: 1.5, twist: .02 },
+    { name: 'Linen',               sku: 'LP 701T',    slug: 'lp-701', src: 'LP 701T', tex: 'textures/lp-701.webp', c1: '#d8d0c0', c2: '#b8b0a0', grain: 1, twist: .01 },
+    { name: 'Simply White',        sku: 'TTWO 101',   slug: 'ttwo-101', src: 'TTWO 101', tex: 'textures/ttwo-101.webp', c1: '#f0ece4', c2: '#e0dcd4', grain: 1, twist: .01 },
+    { name: 'Snow White',          sku: 'TTWO 104',   slug: 'ttwo-104', src: 'TTWO 104', tex: 'textures/ttwo-104.webp', c1: '#f2f0ec', c2: '#e4e2dc', grain: 1, twist: .01 },
+    { name: 'Shadow',              sku: 'TTWO 034',   slug: 'ttwo-034', src: 'TTWO 034', tex: 'textures/ttwo-034.webp', c1: '#4a4844', c2: '#2e2c28', grain: 1, twist: .01 },
+    { name: 'Magic Black',         sku: 'TTWO 230',   slug: 'ttwo-230', src: 'TTWO 230', tex: 'textures/ttwo-230.webp', c1: '#2a2826', c2: '#181614', grain: 1, twist: .01 },
+  ]},
+  { group: 'MARBLE · Vân Đá', items: [
+    { name: 'Marquina Marble',     sku: 'LP D2G',     slug: 'lp-d2',  src: 'LP D2G', tex: 'textures/lp-d2.webp', c1: '#1a1a1a', c2: '#f0f0f0', grain: 1, twist: .02 },
+    { name: 'Volakas Marble',      sku: 'LP D5G',     slug: 'lp-d5',  src: 'LP D5G', tex: 'textures/lp-d5.webp', c1: '#e8e4dc', c2: '#8a8278', grain: 1, twist: .02 },
+    { name: 'Marquina Marble',     sku: 'LP D3G',     slug: 'lp-d3',  src: 'LP D3G', tex: 'textures/lp-d3.webp', c1: '#1e1e1e', c2: '#e8e4dc', grain: 1, twist: .02 },
   ]},
 ];
 
@@ -296,11 +437,13 @@ controls.target.set(0, 1.3, 0);
 ========================================================= */
 let modelRoot = null;
 let contentBox = null;      // bbox nội dung (loại mesh nền khổng lồ)
+let roomBox = null;         // bbox phòng thật (để camera không ra ngoài)
 let clickables = [];        // mesh có thể chọn để đổi vật liệu
 let mode = 'orbit';         // 'orbit' | 'walk' | 'pick'
 let picking = false;        // bật chế độ chọn bề mặt
 let selected = null;        // mesh đang chọn
 let activeWood = null;      // mã gỗ đang áp
+let lightLevel = 0;         // 0=sáng nhất, 1=vừa, 2=tối
 const origMats = new Map(); // mesh -> material gốc (để trả lại)
 const woodCache = new Map();// wood index -> {tex, mat}
 const highlight = new THREE.LineSegments();
@@ -348,6 +491,12 @@ async function loadModel() {
     const c2 = b2.getCenter(new THREE.Vector3());
     modelRoot.position.sub(new THREE.Vector3(c2.x, b2.min.y, c2.z));
     scene.add(modelRoot);
+    // Room bounds — camera clamp trong vùng an toàn
+    roomBox = new THREE.Box3().setFromObject(modelRoot);
+    // Mở rộng bounds cho camera xoay tự do ngoài phòng
+    roomBox.min.x -= 3; roomBox.max.x += 3;
+    roomBox.min.z -= 3; roomBox.max.z += 3;
+    roomBox.min.y = -0.5; roomBox.max.y = 4.0;
     controls.target.set(0, 1.4, 0);
     // --- Clickables: mọi mesh trừ background/trần nền ---
     clickables = [];
@@ -367,6 +516,7 @@ async function loadModel() {
     $('loading').style.display = 'none';
     initCamera();
     buildWoodPanel();
+    buildSurfaceMenu();
     renderer.setAnimationLoop(loop);
     applySharedWood(); // ?wood=lp-387 → tự áp vân đó lên bề mặt chính
   } catch (e) {
@@ -393,11 +543,13 @@ function classifySurf(matName, mesh) {
 function initCamera() {
   const b = new THREE.Box3().setFromObject(modelRoot);
   const c = b.getCenter(new THREE.Vector3());
-  const r = Math.max(b.getSize(new THREE.Vector3()).x, 2.2);
-  camera.position.set(c.x - r * 0.95, 1.55, c.z + r * 0.75);
+  const sz = b.getSize(new THREE.Vector3());
+  const r = Math.max(sz.x, sz.z, 2.2);
+  // Đặt camera ngoài phòng, nhìn vào tâm
+  camera.position.set(c.x - r * 1.1, 1.65, c.z + r * 0.9);
   controls.target.set(c.x, 1.35, c.z);
-  controls.minDistance = 0.5;
-  controls.maxDistance = r * 3.2;
+  controls.minDistance = 0.8;
+  controls.maxDistance = r * 4;
   controls.update();
 }
 
@@ -483,6 +635,45 @@ function selectWood(key, w) {
 function shortName(mesh) {
   const s = (mesh.material?.name || mesh.name || '');
   return s.length > 26 ? s.slice(0, 26) + '…' : s;
+}
+
+/* =========================================================
+   SURFACE MENU — danh sách bề mặt có thể thay gỗ
+========================================================= */
+function buildSurfaceMenu() {
+  const panel = $('surfPanel');
+  const list = $('surfList');
+  if (!panel || !list) return;
+  list.innerHTML = '';
+  // Group by surf type
+  const groups = {};
+  clickables.forEach(m => {
+    const t = m.userData.surf || 'Khác';
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(m);
+  });
+  const order = ['Sàn', 'Gỗ / Tủ bếp', 'Mặt bàn', 'Tường', 'Trần', 'Kính', 'Kim loại', 'Bề mặt', 'Khác'];
+  order.forEach(type => {
+    const items = groups[type];
+    if (!items || !items.length) return;
+    const gh = document.createElement('div'); gh.className = 'surf-group';
+    const icon = { 'Sàn': '🟫', 'Gỗ / Tủ bếp': '🚪', 'Mặt bàn': '🔳', 'Tường': '🧱', 'Trần': '⬜', 'Kính': '🔲', 'Kim loại': '⚙️' }[type] || '📐';
+    gh.innerHTML = `<span class="surf-icon">${icon}</span> <span class="surf-type">${type}</span> <span class="surf-count">${items.length}</span>`;
+    list.appendChild(gh);
+    items.forEach(m => {
+      const btn = document.createElement('button');
+      btn.className = 'surf-item';
+      const nm = shortName(m);
+      const hasWood = origMats.has(m);
+      btn.innerHTML = `<span class="surf-dot ${hasWood ? 'changed' : ''}"></span><span class="surf-name">${nm}</span>`;
+      btn.addEventListener('click', () => {
+        selectSurface(m);
+        if (!picking) togglePick(true);
+        $('surfPanel').classList.remove('open');
+      });
+      list.appendChild(btn);
+    });
+  });
 }
 
 function applyWood(mesh) {
@@ -585,6 +776,13 @@ function applySharedWood() {
 }
 
 $('btnShare').addEventListener('click', shareWoodUrl);
+
+// Surface list panel
+$('btnSurf').addEventListener('click', () => {
+  buildSurfaceMenu(); // refresh
+  $('surfPanel').classList.toggle('open');
+});
+$('surfClose').addEventListener('click', () => $('surfPanel').classList.remove('open'));
 
 /* =========================================================
    CHỌN BỀ MẶT (raycast)
@@ -692,17 +890,34 @@ function updateWalk(dt) {
   if (mv.lengthSq()) mv.normalize().multiplyScalar(dt * 2.2);
   camera.position.add(mv);
   camera.position.y = 1.6; // mắt người
-  // đơn giản: không cho lọt xuống sàn
+  // Camera clamp trong phòng
+  if (roomBox) {
+    const M = 0.3;
+    camera.position.x = Math.max(roomBox.min.x + M, Math.min(roomBox.max.x - M, camera.position.x));
+    camera.position.z = Math.max(roomBox.min.z + M, Math.min(roomBox.max.z - M, camera.position.z));
+  }
 }
 
 /* =========================================================
    LOOP
 ========================================================= */
 const clock = new THREE.Clock();
+function clampCamera() {
+  if (!roomBox || mode === 'walk') return;
+  // Clamp camera position inside room bounds
+  const MARGIN = 0.3;
+  camera.position.x = Math.max(roomBox.min.x + MARGIN, Math.min(roomBox.max.x - MARGIN, camera.position.x));
+  camera.position.z = Math.max(roomBox.min.z + MARGIN, Math.min(roomBox.max.z - MARGIN, camera.position.z));
+  camera.position.y = Math.max(roomBox.min.y + 1.0, Math.min(roomBox.max.y - 0.3, camera.position.y));
+  // Clamp controls target too
+  controls.target.x = Math.max(roomBox.min.x, Math.min(roomBox.max.x, controls.target.x));
+  controls.target.z = Math.max(roomBox.min.z, Math.min(roomBox.max.z, controls.target.z));
+}
 function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (mode === 'walk') updateWalk(dt);
   else controls.update();
+  clampCamera();
   if (selected && selected.parent) {
     const b = new THREE.Box3().setFromObject(selected);
     const c = b.getCenter(new THREE.Vector3());
@@ -724,12 +939,22 @@ function resetCam() {
   if (mode === 'walk') setMode('orbit');
   initCamera();
 }
+// Ánh sáng 3 cấp: 0=Sáng nhất, 1=Vừa, 2=Tối
+const LIGHT_PRESETS = [
+  { sun: 2.6, fill: 0.65, amb: 0.45, hemi: 0.4, label: '☀ Sáng nhất' },
+  { sun: 1.5, fill: 0.35, amb: 0.25, hemi: 0.2, label: '🌤 Sáng vừa' },
+  { sun: 0.3, fill: 0.1,  amb: 0.08, hemi: 0.05, label: '🌙 Tối' },
+];
+const HEMI = new THREE.HemisphereLight(0xfff8e8, 0x8090a0, 0.4);
+scene.add(HEMI);
+function applyLightLevel() {
+  const p = LIGHT_PRESETS[lightLevel];
+  SUN.intensity = p.sun; FILL.intensity = p.fill; AMB.intensity = p.amb; HEMI.intensity = p.hemi;
+  $('hudLight').textContent = p.label;
+}
 $('hudLight').addEventListener('click', () => {
-  const on = SUN.intensity > 1;
-  SUN.intensity = on ? 0.2 : 2.2;
-  FILL.intensity = on ? 0.12 : 0.55;
-  AMB.intensity = on ? 0.08 : 0.3;
-  $('hudLight').textContent = on ? '🌙 Tối' : '☀ Ánh sáng';
+  lightLevel = (lightLevel + 1) % 3;
+  applyLightLevel();
 });
 $('woodOpen').addEventListener('click', () => $('woodPanel').classList.toggle('open'));
 $('btnWood').addEventListener('click', () => $('woodPanel').classList.toggle('open'));
