@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Không Gian 3D — Thử Vật Liệu Gỗ Thanh Thùy | Phòng Bếp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Arsenal:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="description" content="Không gian bếp 3D tương tác — bấm vào sàn, tường, tủ bếp rồi chọn vân gỗ Thanh Thùy (Oak, Walnut...) để xem không gian thay đổi ngay lập tức.">
+<meta name="keywords" content="vân gỗ, thanh thùy, không gian 3d, thử vật liệu, sàn gỗ, tủ bếp, laminate, oak, walnut, khong gian 3d">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Không Gian 3D — Thử Vật Liệu Gỗ Thanh Thùy">
+<meta property="og:description" content="Bấm vào sàn/tường/tủ bếp trong phòng 3D, chọn vân gỗ Thanh Thùy để xem không gian thay đổi tức thì.">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overflow: hidden; height: 100vh; }
+
+/* === HEADER === */
+.header { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(10,10,10,0.92); border-bottom: 1px solid #1c1c1c; position: relative; z-index: 30; backdrop-filter: blur(10px); }
+.logo { font-family: 'Arsenal', sans-serif; font-weight: 700; font-size: 15px; color: #fff; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+.logo .tt { color: #eab308; }
+.header h1 { font-size: 13px; font-weight: 500; color: #ccc; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header .sku { color: #999; font-size: 11px; background: #161616; border: 1px solid #262626; padding: 3px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+.header .hint { display: none; }
+
+/* === VIEWER === */
+.viewer { width: 100%; height: calc(100vh - 42px); position: relative; background: radial-gradient(ellipse at center, #151515 0%, #0a0a0a 100%); }
+.viewer canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+.viewer canvas.selecting { cursor: crosshair; }
+.viewer canvas.walking { cursor: crosshair; }
+
+#loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 13px; letter-spacing: .3px; z-index: 5; background: #0a0a0a; }
+#loading .spin { width: 26px; height: 26px; border: 2px solid #2a2a2a; border-top-color: #eab308; border-radius: 50%; animation: rot 1s linear infinite; margin-right: 12px; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* === LEFT TOOL BAR === */
+.tools { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 12; }
+.tool { width: 42px; height: 42px; border-radius: 11px; background: rgba(20,20,20,.82); border: 1px solid rgba(255,255,255,.12); color: #e5e5e5; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); transition: all .15s; position: relative; }
+.tool:hover { background: rgba(255,255,255,.14); }
+.tool.active { background: rgba(234,179,8,.22); border-color: #eab308; color: #fde68a; box-shadow: 0 0 0 1px rgba(234,179,8,.35); }
+.tool .tip { position: absolute; left: 50px; top: 50%; transform: translateY(-50%); background: #1c1c1c; color: #fff; font-size: 11px; padding: 5px 9px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; border: 1px solid #2e2e2e; }
+.tool:hover .tip { opacity: 1; }
+
+/* === SELECTION TOAST (top center) === */
+#selToast { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(28,28,28,.95); border: 1px solid rgba(255,255,255,.14); color: #fff; padding: 7px 14px; border-radius: 20px; font-size: 12px; display: none; align-items: center; gap: 8px; backdrop-filter: blur(10px); z-index: 12; white-space: nowrap; max-width: 80%; }
+#selToast .x { background: none; border: none; color: #999; font-size: 14px; cursor: pointer; margin-left: 4px; }
+#selToast .x:hover { color: #fff; }
+
+/* === STATUS (bottom-left) === */
+#status { position: absolute; left: 12px; bottom: 12px; color: #8a8a8a; font-size: 11px; z-index: 8; text-shadow: 0 1px 2px rgba(0,0,0,.7); pointer-events: none; }
+
+/* === CAMERA HUD (bottom center) === */
+.hud { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; background: rgba(16,16,16,.85); padding: 5px; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(10px); z-index: 11; }
+.hud button { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #ddd; padding: 6px 11px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: all .15s; font-family: inherit; white-space: nowrap; }
+.hud button:hover { background: rgba(255,255,255,.16); }
+.hud button.active { background: rgba(234,179,8,.25); border-color: #eab308; color: #fde68a; }
+.hud .sep { width: 1px; background: rgba(255,255,255,.12); margin: 2px 3px; }
+
+/* === WOOD PANEL (right drawer) === */
+#woodPanel { position: absolute; right: 0; top: 0; bottom: 0; width: 252px; background: rgba(14,14,14,.97); border-left: 1px solid #242424; backdrop-filter: blur(14px); transform: translateX(100%); transition: transform .25s ease; z-index: 20; display: flex; flex-direction: column; }
+#woodPanel.open { transform: translateX(0); box-shadow: -20px 0 40px rgba(0,0,0,.45); }
+.wp-head { padding: 14px 14px 8px; }
+.wp-head h3 { font-family: 'Arsenal', sans-serif; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 7px; }
+.wp-head h3 .tt { color: #eab308; }
+.wp-head p { font-size: 11px; color: #8a8a8a; margin-top: 4px; line-height: 1.45; }
+.wp-body { flex: 1; overflow-y: auto; padding: 8px 10px 14px; }
+.wp-body::-webkit-scrollbar { width: 6px; }
+.wp-body::-webkit-scrollbar-thumb { background: #2c2c2c; border-radius: 4px; }
+.wood-item { width: 100%; text-align: left; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09); border-radius: 10px; padding: 7px 9px; margin-bottom: 7px; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 9px; font-family: inherit; color: #fff; }
+.wood-item:hover { background: rgba(255,255,255,.1); }
+.wood-item.selected { border-color: #eab308; background: rgba(234,179,8,.14); box-shadow: 0 0 0 1px rgba(234,179,8,.3); }
+.wood-item .thumb { width: 42px; height: 42px; border-radius: 7px; border: 1px solid rgba(255,255,255,.1); flex-shrink: 0; overflow: hidden; }
+.wood-item .thumb canvas { width: 100%; height: 100%; display: block; }
+.wood-item .meta { min-width: 0; }
+.wood-item .nm { font-size: 12px; font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wood-item .sk { font-size: 10px; color: #9a9a9a; display: block; margin-top: 1px; }
+.wp-group { font-size: 10px; color: #6f6f6f; letter-spacing: 1.4px; text-transform: uppercase; margin: 14px 2px 7px; }
+.wp-group:first-child { margin-top: 2px; }
+.wp-actions { padding: 8px 10px; border-top: 1px solid #222; display: flex; gap: 6px; }
+.wp-actions button { flex: 1; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.13); color: #ddd; padding: 8px 4px; border-radius: 8px; cursor: pointer; font-size: 11.5px; font-family: inherit; transition: all .15s; }
+.wp-actions button:hover { background: rgba(255,255,255,.15); }
+.wp-actions .undo { color: #fca5a5; border-color: rgba(248,113,113,.3); }
+
+/* === OPEN WOOD BUTTON (top right) === */
+#woodOpen { position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 7px; background: rgba(234,179,8,.18); border: 1px solid rgba(234,179,8,.55); color: #fde68a; padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 12.5px; font-weight: 600; font-family: inherit; backdrop-filter: blur(8px); transition: all .15s; z-index: 11; }
+#woodOpen:hover { background: rgba(234,179,8,.3); }
+#woodOpen .dot { width: 9px; height: 9px; border-radius: 50%; background: #eab308; }
+
+/* === WALK HINT === */
+#walkHint { position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%); background: rgba(16,16,16,.9); border: 1px solid rgba(255,255,255,.12); color: #bbb; font-size: 11.5px; padding: 7px 14px; border-radius: 20px; display: none; backdrop-filter: blur(10px); z-index: 9; white-space: nowrap; }
+#walkHint kbd { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 1px 5px; font-family: inherit; font-size: 10.5px; color: #eee; }
+
+@media (max-width: 640px) {
+  .header h1 { font-size: 12px; }
+  .header .sku { display: none; }
+  #woodPanel { width: 88vw; }
+  #woodOpen { padding: 7px 10px; font-size: 11.5px; }
+  .hud button { padding: 6px 8px; font-size: 11px; }
+  .tool { width: 38px; height: 38px; font-size: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="logo">Thanh Thùy <span class="tt">Wood</span></span>
+  <h1>Không Gian 3D — thử vật liệu trong phòng bếp</h1>
+  <span class="sku">Model: Phòng bếp · demo</span>
+</div>
+
+<div class="viewer" id="viewer">
+  <div id="loading"><div class="spin"></div>Đang tải không gian 3D…</div>
+
+  <div class="tools">
+    <button class="tool" id="btnPick" title="Chọn bề mặt"><span>👆</span><span class="tip">Chọn bề mặt — bấm vào sàn/tường/tủ</span></button>
+    <button class="tool" id="btnWood" title="Vật liệu"><span>🪵</span><span class="tip">Bảng vật liệu gỗ Thanh Thùy</span></button>
+    <button class="tool active" id="btnOrbit" title="Xoay xung quanh"><span>🔄</span><span class="tip">Xoay quanh không gian</span></button>
+    <button class="tool" id="btnWalk" title="Đi bộ"><span>🚶</span><span class="tip">Đi bộ trong phòng (WASD)</span></button>
+    <button class="tool" id="btnReset" title="Đặt lại camera"><span>⌂</span><span class="tip">Đặt lại góc nhìn</span></button>
+  </div>
+
+  <button id="woodOpen"><span class="dot"></span>🪵 Vật liệu gỗ</button>
+  <div id="selToast"><span id="selName"></span><button class="x" id="selClose">✕</button></div>
+  <div id="walkHint"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> di chuyển · chuột để nhìn · <kbd>ESC</kbd> thoát</div>
+
+  <div class="hud">
+    <button id="hudOrbit" class="active">🔄 Xoay quanh</button>
+    <button id="hudWalk">🚶 Đi bộ</button>
+    <span class="sep"></span>
+    <button id="hudLight">☀ Ánh sáng</button>
+    <button id="hudReset">⌂ Reset</button>
+  </div>
+
+  <div id="status">Kéo chuột xoay · cuộn zoom · bấm 👆 rồi chọn bề mặt để thay gỗ</div>
+
+  <div id="woodPanel">
+    <div class="wp-head">
+      <h3>🪵 <span class="tt">Gỗ Thanh Thùy</span></h3>
+      <p id="wpTarget">Bấm 👆 rồi chọn 1 bề mặt (sàn, tường, tủ…) trong phòng — sau đó bấm vân gỗ để thay ngay.</p>
+    </div>
+    <div class="wp-body" id="woodList"></div>
+    <div class="wp-actions">
+      <button id="undoOne">↺ Trả về gỗ gốc</button>
+      <button id="closePanel">✕ Đóng</button>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+/* =========================================================
+   MODEL + GỖ THANH THÙY (thư viện vân gỗ)
+========================================================= */
+// Vân gỗ theo nhóm sản phẩm Thanh Thùy: mỗi mẫu = 2 màu (sáng/tối) + hướng vân + độ thô.
+// Màu tham khảo từ ảnh thật các mã (LP/LB/TT) trong catalog.
+const WOODS = [
+  { group: 'OAK · Vân Sồi', items: [
+    { name: 'French Oak',        sku: 'LP 387EV',   c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
+    { name: 'Oak Santana',       sku: 'LP 388EV',   c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
+    { name: 'Sonama Oak',        sku: 'LP 389EV',   c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
+    { name: 'Riviera Oak',       sku: 'LP 428T',    c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
+    { name: 'Banstead Oak',      sku: 'LP 611WN',   c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
+    { name: 'Metallic Oak',      sku: 'LP 240T',    c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
+  ]},
+  { group: 'WALNUT · Vân Óc Chó', items: [
+    { name: 'Classical Walnut',  sku: 'LP 319EV',   c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
+    { name: 'Virgina Walnut',    sku: 'LP 332WN',   c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
+    { name: 'Columbia Walnut',   sku: 'LP 333WN',   c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
+    { name: 'Plum Walnut',       sku: 'LP 335T',    c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
+    { name: 'Snug Walnut',       sku: 'LP 612WN',   c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
+    { name: 'Lyon Walnut',       sku: 'LP 448EV',   c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
+  ]},
+  { group: 'WOODGRAIN · Tấm TT', items: [
+    { name: 'Bavarian Beech',    sku: 'TT 212',     c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
+    { name: 'White Beech',       sku: 'TT 217',     c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
+    { name: 'Jasmund Beech',     sku: 'TT 452',     c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
+  ]},
+  { group: 'MÀU TỰ NHIÊN', items: [
+    { name: 'Gỗ tếch (Teak)',    sku: 'TE-01',      c1: '#b58250', c2: '#7c5227', grain: 2, twist: .09 },
+    { name: 'Anh đào (Cherry)',  sku: 'CH-01',      c1: '#b06a44', c2: '#74381f', grain: 1.8, twist: .08 },
+    { name: 'Phong (Maple)',     sku: 'MP-01',      c1: '#e2cfae', c2: '#c0a378', grain: 3.4, twist: .03 },
+  ]},
+];
+
+// Sinh texture vân gỗ (seamless) bằng canvas — lặp theo chiều dài tấm.
+function makeWoodTexture(w, tileLen = 1) {
+  const S = 512;
+  const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+  const ctx = cv.getContext('2d');
+  // nền dọc
+  ctx.fillStyle = w.c1; ctx.fillRect(0, 0, S, S);
+  // vân chạy dọc (dọc theo chiều Y của ảnh — plank đứng)
+  const N = 26;
+  const colA = ctx.createLinearGradient(0, 0, 0, S);
+  colA.addColorStop(0, w.c1); colA.addColorStop(1, w.c2);
+  ctx.fillStyle = colA;
+  ctx.globalAlpha = .3;
+  for (let i = 0; i < N; i++) {
+    const y = (i / N) * S;
+    const wdt = 3 + Math.random() * (S / N) * .6;
+    ctx.fillRect(0, y, S, wdt);
+  }
+  ctx.globalAlpha = .35;
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < N; i++) {
+    const y = (i / N) * S + Math.random() * (S / N) * .5;
+    ctx.beginPath();
+    for (let x = 0; x <= S; x += 16) {
+      const yy = y + Math.sin((x / S) * Math.PI * w.twist * 4 + i * 1.7) * (2 + Math.random() * 5);
+      x === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+  // mắt gỗ nhỏ
+  ctx.globalAlpha = .5; ctx.fillStyle = '#000';
+  for (let i = 0; i < 9; i++) {
+    const x = Math.random() * S, y = Math.random() * S, r = 1.5 + Math.random() * 3;
+    ctx.beginPath(); ctx.ellipse(x, y, r, r * .55, Math.random() * 3, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(cv);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.repeat.set(1, Math.max(1, Math.round(tileLen * 2))); // vân co theo chiều dài bề mặt
+  tex.anisotropy = 4;
+  return tex;
+}
+
+/* =========================================================
+   RENDERER / SCENE / CAMERA
+========================================================= */
+const container = document.getElementById('viewer');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0a0a0a, 40, 90);
+
+const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.05, 500);
+
+const SUN = new THREE.DirectionalLight(0xfff3e0, 2.2);
+SUN.position.set(6, 9, 4);
+SUN.castShadow = true;
+SUN.shadow.mapSize.set(2048, 2048);
+scene.add(SUN);
+const FILL = new THREE.DirectionalLight(0xbfd9ff, 0.55);
+FILL.position.set(-5, 3, -6);
+scene.add(FILL);
+const AMB = new THREE.AmbientLight(0xffffff, 0.3);
+scene.add(AMB);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 0.6;
+controls.maxDistance = 18;
+controls.maxPolarAngle = Math.PI * 0.72;
+controls.target.set(0, 1.3, 0);
+
+/* =========================================================
+   TRẠNG THÁI
+========================================================= */
+let modelRoot = null;
+let contentBox = null;      // bbox nội dung (loại mesh nền khổng lồ)
+let clickables = [];        // mesh có thể chọn để đổi vật liệu
+let mode = 'orbit';         // 'orbit' | 'walk' | 'pick'
+let picking = false;        // bật chế độ chọn bề mặt
+let selected = null;        // mesh đang chọn
+let activeWood = null;      // mã gỗ đang áp
+const origMats = new Map(); // mesh -> material gốc (để trả lại)
+const woodCache = new Map();// wood index -> {tex, mat}
+const highlight = new THREE.LineSegments();
+const hlGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1));
+const hlMat = new THREE.LineBasicMaterial({ color: 0xeab308, transparent: true, opacity: 0.95 });
+highlight.geometry = hlGeo; highlight.material = hlMat;
+highlight.renderOrder = 999;
+highlight.frustumCulled = false;
+scene.add(highlight);
+
+const $ = id => document.getElementById(id);
+const toastSel = $('selToast'), selName = $('selName');
+
+/* =========================================================
+   TẢI MODEL
+========================================================= */
+const loader = new GLTFLoader();
+const draco = new DRACOLoader();
+draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+loader.setDRACOLoader(draco);
+
+const MODEL_URL = new URLSearchParams(location.search).get('model') || 'models/kitchen-draco.glb';
+
+async function loadModel() {
+  try {
+    const gltf = await loader.loadAsync(MODEL_URL);
+    modelRoot = gltf.scene;
+    // --- Auto-fit: bỏ mesh nền dị thường (sàn/trần khổng lồ) khi đo kích thước ---
+    const meshes = [];
+    modelRoot.updateMatrixWorld(true);
+    modelRoot.traverse(o => { if (o.isMesh) { o.matrixWorldNeedsUpdate = false; meshes.push(o); } });
+    const boxes = meshes.map(m => { const b = new THREE.Box3().setFromObject(m); const s = b.getSize(new THREE.Vector3()); return { m, b, diag: s.length() }; }).sort((a, b) => b.diag - a.diag);
+    // diag lớn nhất là "chuẩn" của cảnh — loại mesh to gấp > 6 lần hoặc mỏng dẹt kiểu sàn/trời
+    const ref = boxes[0]?.diag || 1;
+    const content = boxes.filter(x => x.diag < ref * 0.7 && x.b.min.y < ref * 0.35);
+    contentBox = new THREE.Box3();
+    (content.length ? content : boxes).forEach(x => contentBox.union(x.b));
+    const size = contentBox.getSize(new THREE.Vector3());
+    const center = contentBox.getCenter(new THREE.Vector3());
+    // Đưa về tỉ lệ mét: phòng cao ~2.6m
+    const scale = 2.6 / (size.y || 2.6);
+    modelRoot.scale.setScalar(scale);
+    // Dời để trung tâm nằm gần gốc, sàn ở y≈0
+    const b2 = new THREE.Box3().setFromObject(modelRoot);
+    const c2 = b2.getCenter(new THREE.Vector3());
+    modelRoot.position.sub(new THREE.Vector3(c2.x, b2.min.y, c2.z));
+    scene.add(modelRoot);
+    controls.target.set(0, 1.4, 0);
+    // --- Clickables: mọi mesh trừ background/trần nền ---
+    clickables = [];
+    modelRoot.traverse(o => {
+      if (!o.isMesh) return;
+      const nm = (o.name || '').toLowerCase();
+      const b = new THREE.Box3().setFromObject(o);
+      const diag = b.getSize(new THREE.Vector3()).length();
+      const skipBg = /ground|floor_none|backdrop|sky|env|hdri|light/i.test(nm) && diag > ref * 0.5;
+      if (!skipBg && diag < ref * 0.6) clickables.push(o);
+    });
+    // Phân nhóm bề mặt theo tên material để thông báo thân thiện
+    clickables.forEach(m => {
+      const mn = (m.material?.name || m.name || '');
+      m.userData.surf = classifySurf(mn, m);
+    });
+    $('loading').style.display = 'none';
+    initCamera();
+    buildWoodPanel();
+    renderer.setAnimationLoop(loop);
+  } catch (e) {
+    $('loading').innerHTML = '⚠️ Không tải được model 3D: ' + (e?.message || e);
+  }
+}
+
+function classifySurf(matName, mesh) {
+  const s = (matName + ' ' + mesh.name).toLowerCase();
+  const b = new THREE.Box3().setFromObject(mesh);
+  const n = b.getSize(new THREE.Vector3());
+  const isFloor = n.y < Math.min(n.x, n.z) * 0.25 && n.y < 0.35 && b.min.y < 0.15;
+  if (isFloor) return 'Sàn';
+  if (/floor|piso|suelo|ground/.test(s)) return 'Sàn';
+  if (/pared|wall|tường|fachada/.test(s)) return 'Tường';
+  if (/techo|ceiling|tran/.test(s)) return 'Trần';
+  if (/madera|wood|cabinet|tủ|gỗ|mueble|puerta|door/.test(s)) return 'Gỗ / Tủ bếp';
+  if (/encimera|counter|mặt bàn|top|mesa/.test(s)) return 'Mặt bàn';
+  if (/cristal|vidrio|glass|kính/.test(s)) return 'Kính';
+  if (/acero|metal|inox/.test(s)) return 'Kim loại';
+  return 'Bề mặt';
+}
+
+function initCamera() {
+  const b = new THREE.Box3().setFromObject(modelRoot);
+  const c = b.getCenter(new THREE.Vector3());
+  const r = Math.max(b.getSize(new THREE.Vector3()).x, 2.2);
+  camera.position.set(c.x - r * 0.95, 1.55, c.z + r * 0.75);
+  controls.target.set(c.x, 1.35, c.z);
+  controls.minDistance = 0.5;
+  controls.maxDistance = r * 3.2;
+  controls.update();
+}
+
+/* =========================================================
+   GỖ — panel + áp vật liệu
+========================================================= */
+function buildWoodPanel() {
+  const list = $('woodList');
+  list.innerHTML = '';
+  WOODS.forEach(g => {
+    const gh = document.createElement('div');
+    gh.className = 'wp-group'; gh.textContent = g.group;
+    list.appendChild(gh);
+    g.items.forEach((w, i) => {
+      const key = g.group + '/' + w.sku;
+      const item = document.createElement('button');
+      item.className = 'wood-item';
+      item.innerHTML = `<span class="thumb"><canvas width="84" height="84"></canvas></span>
+        <span class="meta"><span class="nm">${w.name}</span><span class="sk">${w.sku}</span></span>`;
+      const t = makeWoodTexture(w, 1);
+      t.repeat.set(2, 4);
+      const cv = item.querySelector('canvas');
+      const tmp = document.createElement('canvas'); tmp.width = tmp.height = 128;
+      const tctx = tmp.getContext('2d');
+      tctx.fillStyle = w.c1; tctx.fillRect(0, 0, 128, 128);
+      tctx.globalAlpha = .4; tctx.strokeStyle = '#000'; tctx.lineWidth = 1.6;
+      for (let k = 0; k < 7; k++) {
+        const y = (k / 7) * 128 + Math.sin(k * 3.1) * 3;
+        tctx.beginPath();
+        for (let x = 0; x <= 128; x += 6) tctx.lineTo(x, y + Math.sin((x / 128) * Math.PI * w.twist * 5) * 2.5);
+        tctx.stroke();
+      }
+      cv.getContext('2d').drawImage(tmp, 0, 0, 84, 84);
+      item.addEventListener('click', () => {
+        selectWood(key, w);
+        document.querySelectorAll('.wood-item').forEach(el => el.classList.remove('selected'));
+        item.classList.add('selected');
+      });
+      list.appendChild(item);
+    });
+  });
+}
+
+function getWoodEntry(key) {
+  for (const g of WOODS) for (const w of g.items) if (g.group + '/' + w.sku === key) return w;
+  return null;
+}
+function selectWood(key, w) {
+  activeWood = key;
+  const t = $('wpTarget');
+  if (selected) {
+    applyWood(selected);
+    t.textContent = `🪵 ${w.name} (${w.sku}) — đã áp lên "${selected.userData.surf}: ${shortName(selected)}". Bấm bề mặt khác hoặc chọn vân khác.`;
+    t.style.color = '#fde68a';
+  } else {
+    t.textContent = `Đã chọn ${w.name} (${w.sku}). Giờ bấm 👆 ở góc trái rồi chọn bề mặt trong phòng để áp gỗ.`;
+    t.style.color = '#fde68a';
+  }
+  // mở chế độ chọn nếu chưa bật
+  if (!picking) togglePick(true);
+}
+
+function shortName(mesh) {
+  const s = (mesh.material?.name || mesh.name || '');
+  return s.length > 26 ? s.slice(0, 26) + '…' : s;
+}
+
+function applyWood(mesh) {
+  const w = getWoodEntry(activeWood);
+  if (!w || !mesh) return;
+  if (!origMats.has(mesh)) origMats.set(mesh, mesh.material);
+  const key = activeWood;
+  let entry = woodCache.get(key);
+  if (!entry) {
+    const b = new THREE.Box3().setFromObject(mesh);
+    const diag = b.getSize(new THREE.Vector3()).length();
+    const tex = makeWoodTexture(w, diag > 1.4 ? diag / 2.2 : 1);
+    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55, metalness: 0.04, envMapIntensity: 0.6 });
+    entry = { tex, mat };
+    woodCache.set(key, entry);
+  }
+  mesh.material = entry.mat;
+  entry.mat.needsUpdate = true;
+  toastSel.style.display = 'flex';
+  selName.textContent = `🪵 ${w.name} (${w.sku}) → ${mesh.userData.surf}: ${shortName(mesh)}`;
+}
+
+function undoSelection() {
+  if (selected && origMats.has(selected)) {
+    selected.material = origMats.get(selected);
+    toastSel.style.display = 'none';
+  }
+}
+
+/* =========================================================
+   CHỌN BỀ MẶT (raycast)
+========================================================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function onPointerDown(e) {
+  if (e.button !== 0) return;
+  if (mode === 'walk') { walkMouseDown(e); return; }
+  if (!picking) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(clickables, false);
+  if (hits.length) {
+    selectSurface(hits[0].object);
+  }
+}
+function selectSurface(mesh) {
+  selected = mesh;
+  const b = new THREE.Box3().setFromObject(mesh);
+  const c = b.getCenter(new THREE.Vector3());
+  highlight.position.copy(c);
+  highlight.scale.copy(b.getSize(new THREE.Vector3()).addScalar(0.02));
+  highlight.visible = true;
+  const w = activeWood ? getWoodEntry(activeWood) : null;
+  toastSel.style.display = 'flex';
+  selName.textContent = `👆 ${mesh.userData.surf}: ${shortName(mesh)}` + (w ? ` — bấm “${w.name}” trong bảng để áp` : ' — mở 🪵 và chọn vân gỗ');
+  // nếu đang chọn sẵn gỗ thì áp luôn
+  if (w) applyWood(mesh);
+}
+$('selClose').addEventListener('click', () => {
+  selected = null; highlight.visible = false; toastSel.style.display = 'none';
+});
+$('undoOne').addEventListener('click', undoSelection);
+
+function togglePick(force) {
+  picking = force !== undefined ? force : !picking;
+  $('btnPick').classList.toggle('active', picking);
+  renderer.domElement.classList.toggle('selecting', picking);
+  if (picking && mode === 'walk') toggleWalk(false);
+}
+$('btnPick').addEventListener('click', () => togglePick());
+
+/* =========================================================
+   ORBIT / WALK
+========================================================= */
+function setMode(m) {
+  mode = m;
+  $('hudOrbit').classList.toggle('active', m === 'orbit');
+  $('hudWalk').classList.toggle('active', m === 'walk');
+  $('btnOrbit').classList.toggle('active', m === 'orbit');
+  $('btnWalk').classList.toggle('active', m === 'walk');
+  renderer.domElement.classList.toggle('walking', m === 'walk');
+  $('walkHint').style.display = m === 'walk' ? 'block' : 'none';
+  controls.enabled = m !== 'walk';
+  if (m === 'walk') controls.saveState();
+  if (m === 'orbit') camera.rotation.order = 'XYZ';
+}
+function toggleWalk(force) {
+  const want = force !== undefined ? force : mode !== 'walk';
+  setMode(want ? 'walk' : 'orbit');
+  if (want && picking) togglePick(false);
+}
+$('btnWalk').addEventListener('click', () => toggleWalk());
+$('hudWalk').addEventListener('click', () => toggleWalk());
+$('btnOrbit').addEventListener('click', () => toggleWalk(false));
+$('hudOrbit').addEventListener('click', () => toggleWalk(false));
+
+// Đi bộ WASD
+const walk = { vel: new THREE.Vector3(), yaw: 0, pitch: 0, keys: {} };
+const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+const fwd = new THREE.Vector3(), right = new THREE.Vector3();
+
+function walkMouseDown(e) {
+  if (document.pointerLockElement) return;
+  renderer.domElement.requestPointerLock();
+}
+document.addEventListener('pointerlockchange', () => {
+  if (document.pointerLockElement === renderer.domElement && mode === 'walk') {
+    euler.setFromQuaternion(camera.quaternion);
+    walk.yaw = euler.y; walk.pitch = euler.x;
+  }
+});
+document.addEventListener('mousemove', e => {
+  if (document.pointerLockElement !== renderer.domElement || mode !== 'walk') return;
+  const s = 0.0024;
+  walk.yaw -= e.movementX * s;
+  walk.pitch -= e.movementY * s;
+  walk.pitch = Math.max(-1.45, Math.min(1.45, walk.pitch));
+  camera.quaternion.setFromEuler(new THREE.Euler(walk.pitch, walk.yaw, 0, 'YXZ'));
+});
+document.addEventListener('keydown', e => { walk.keys[e.key.toLowerCase()] = true; if (e.key === 'Escape' && mode === 'walk') toggleWalk(false); });
+document.addEventListener('keyup', e => { walk.keys[e.key.toLowerCase()] = false; });
+
+function updateWalk(dt) {
+  camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+  right.crossVectors(fwd, camera.up).normalize();
+  const mv = new THREE.Vector3();
+  if (walk.keys['w']) mv.add(fwd);
+  if (walk.keys['s']) mv.sub(fwd);
+  if (walk.keys['d']) mv.add(right);
+  if (walk.keys['a']) mv.sub(right);
+  if (mv.lengthSq()) mv.normalize().multiplyScalar(dt * 2.2);
+  camera.position.add(mv);
+  camera.position.y = 1.6; // mắt người
+  // đơn giản: không cho lọt xuống sàn
+}
+
+/* =========================================================
+   LOOP
+========================================================= */
+const clock = new THREE.Clock();
+function loop() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (mode === 'walk') updateWalk(dt);
+  else controls.update();
+  if (selected && selected.parent) {
+    const b = new THREE.Box3().setFromObject(selected);
+    const c = b.getCenter(new THREE.Vector3());
+    highlight.position.lerp(c, 0.35);
+  } else if (highlight.visible && !selected) highlight.visible = false;
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && picking) togglePick(false); });
+
+$('btnReset').addEventListener('click', resetCam);
+$('hudReset').addEventListener('click', resetCam);
+function resetCam() {
+  if (mode === 'walk') setMode('orbit');
+  initCamera();
+}
+$('hudLight').addEventListener('click', () => {
+  const on = SUN.intensity > 1;
+  SUN.intensity = on ? 0.2 : 2.2;
+  FILL.intensity = on ? 0.12 : 0.55;
+  AMB.intensity = on ? 0.08 : 0.3;
+  $('hudLight').textContent = on ? '🌙 Tối' : '☀ Ánh sáng';
+});
+$('woodOpen').addEventListener('click', () => $('woodPanel').classList.toggle('open'));
+$('btnWood').addEventListener('click', () => $('woodPanel').classList.toggle('open'));
+$('closePanel').addEventListener('click', () => $('woodPanel').classList.remove('open'));
+
+renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+loadModel();
+</script>
+</body>
+</html>
