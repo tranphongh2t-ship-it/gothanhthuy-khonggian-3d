@@ -30,6 +30,14 @@ GitHub Pages: **https://tranphongh2t-ship-it.github.io/gothanhthuy-khonggian-3d/
 └── README.md
 ```
 
+## Chia sẻ đúng vật liệu
+
+Nút **🔗 Chia sẻ** (góc trên trái viewport) sao chép link dạng
+`?wood=<slug>` — người mở link sẽ thấy **tự động áp sẵn vân gỗ đó lên sàn**
+(bề mặt chính), bảng vật liệu mở sẵn và tô đậm mẫu tương ứng.
+
+Ví dụ: `index.html?wood=lp-335` → tự áp Plum Walnut lên sàn.
+
 ## Đổi model khác
 
 1. Nén GLB của bạn (nên < 15 MB):

@@ -118,6 +118,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     <button class="tool active" id="btnOrbit" title="Xoay xung quanh"><span>🔄</span><span class="tip">Xoay quanh không gian</span></button>
     <button class="tool" id="btnWalk" title="Đi bộ"><span>🚶</span><span class="tip">Đi bộ trong phòng (WASD)</span></button>
     <button class="tool" id="btnReset" title="Đặt lại camera"><span>⌂</span><span class="tip">Đặt lại góc nhìn</span></button>
+    <button class="tool" id="btnShare" title="Chia sẻ"><span>🔗</span><span class="tip">Sao chép link chia sẻ vân gỗ đang chọn</span></button>
   </div>
 
   <button id="woodOpen"><span class="dot"></span>🪵 Vật liệu gỗ</button>
@@ -166,30 +167,30 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 // Màu tham khảo từ ảnh thật các mã (LP/LB/TT) trong catalog.
 const WOODS = [
   { group: 'OAK · Vân Sồi', items: [
-    { name: 'French Oak',        sku: 'LP 387EV',   tex: 'textures/lp-387.webp', c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
-    { name: 'Oak Santana',       sku: 'LP 388EV',   tex: 'textures/lp-388.webp', c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
-    { name: 'Sonama Oak',        sku: 'LP 389EV',   tex: 'textures/lp-389.webp', c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
-    { name: 'Riviera Oak',       sku: 'LP 428T',    tex: 'textures/lp-428.webp', c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
-    { name: 'Banstead Oak',      sku: 'LP 611WN',   tex: 'textures/lp-611.webp', c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
-    { name: 'Metallic Oak',      sku: 'LP 240T',    tex: 'textures/lp-240.webp', c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
+    { name: 'French Oak',        sku: 'LP 387EV',   slug: 'lp-387', tex: 'textures/lp-387.webp', c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
+    { name: 'Oak Santana',       sku: 'LP 388EV',   slug: 'lp-388', tex: 'textures/lp-388.webp', c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
+    { name: 'Sonama Oak',        sku: 'LP 389EV',   slug: 'lp-389', tex: 'textures/lp-389.webp', c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
+    { name: 'Riviera Oak',       sku: 'LP 428T',    slug: 'lp-428', tex: 'textures/lp-428.webp', c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
+    { name: 'Banstead Oak',      sku: 'LP 611WN',   slug: 'lp-611', tex: 'textures/lp-611.webp', c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
+    { name: 'Metallic Oak',      sku: 'LP 240T',    slug: 'lp-240', tex: 'textures/lp-240.webp', c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
   ]},
   { group: 'WALNUT · Vân Óc Chó', items: [
-    { name: 'Classical Walnut',  sku: 'LP 319EV',   tex: 'textures/lp-319.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
-    { name: 'Virgina Walnut',    sku: 'LP 332WN',   tex: 'textures/lp-332.webp', c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
-    { name: 'Columbia Walnut',   sku: 'LP 333WN',   tex: 'textures/lp-333.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
-    { name: 'Plum Walnut',       sku: 'LP 335T',    tex: 'textures/lp-335.webp', c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
-    { name: 'Snug Walnut',       sku: 'LP 612WN',   tex: 'textures/lp-612.webp', c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
-    { name: 'Lyon Walnut',       sku: 'LP 448EV',   tex: 'textures/lp-448.webp', c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
+    { name: 'Classical Walnut',  sku: 'LP 319EV',   slug: 'lp-319', tex: 'textures/lp-319.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
+    { name: 'Virgina Walnut',    sku: 'LP 332WN',   slug: 'lp-332', tex: 'textures/lp-332.webp', c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
+    { name: 'Columbia Walnut',   sku: 'LP 333WN',   slug: 'lp-333', tex: 'textures/lp-333.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
+    { name: 'Plum Walnut',       sku: 'LP 335T',    slug: 'lp-335', tex: 'textures/lp-335.webp', c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
+    { name: 'Snug Walnut',       sku: 'LP 612WN',   slug: 'lp-612', tex: 'textures/lp-612.webp', c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
+    { name: 'Lyon Walnut',       sku: 'LP 448EV',   slug: 'lp-448', tex: 'textures/lp-448.webp', c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
   ]},
   { group: 'WOODGRAIN · Tấm TT', items: [
-    { name: 'Bavarian Beech',    sku: 'TT 212',     tex: 'textures/tt-212.webp', c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
-    { name: 'White Beech',       sku: 'TT 217',     tex: 'textures/tt-217.webp', c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
-    { name: 'Jasmund Beech',     sku: 'TT 452',     tex: 'textures/tt-452.webp', c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
+    { name: 'Bavarian Beech',    sku: 'TT 212',     slug: 'tt-212', tex: 'textures/tt-212.webp', c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
+    { name: 'White Beech',       sku: 'TT 217',     slug: 'tt-217', tex: 'textures/tt-217.webp', c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
+    { name: 'Jasmund Beech',     sku: 'TT 452',     slug: 'tt-452', tex: 'textures/tt-452.webp', c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
   ]},
   { group: 'MÀU TỰ NHIÊN', items: [
-    { name: 'Gỗ tếch (Teak)',    sku: 'TE-01',      c1: '#b58250', c2: '#7c5227', grain: 2, twist: .09 },
-    { name: 'Anh đào (Cherry)',  sku: 'CH-01',      c1: '#b06a44', c2: '#74381f', grain: 1.8, twist: .08 },
-    { name: 'Phong (Maple)',     sku: 'MP-01',      c1: '#e2cfae', c2: '#c0a378', grain: 3.4, twist: .03 },
+    { name: 'Gỗ tếch (Teak)',    sku: 'TE-01',      slug: 'te-01', c1: '#b58250', c2: '#7c5227', grain: 2, twist: .09 },
+    { name: 'Anh đào (Cherry)',  sku: 'CH-01',      slug: 'ch-01', c1: '#b06a44', c2: '#74381f', grain: 1.8, twist: .08 },
+    { name: 'Phong (Maple)',     sku: 'MP-01',      slug: 'mp-01', c1: '#e2cfae', c2: '#c0a378', grain: 3.4, twist: .03 },
   ]},
 ];
 
@@ -367,6 +368,7 @@ async function loadModel() {
     initCamera();
     buildWoodPanel();
     renderer.setAnimationLoop(loop);
+    applySharedWood(); // ?wood=lp-387 → tự áp vân đó lên bề mặt chính
   } catch (e) {
     $('loading').innerHTML = '⚠️ Không tải được model 3D: ' + (e?.message || e);
   }
@@ -505,6 +507,74 @@ function undoSelection() {
     toastSel.style.display = 'none';
   }
 }
+
+/* =========================================================
+   CHIA SẺ — link ?wood=<slug> tự áp vân gỗ khi mở
+========================================================= */
+function findWoodBySlug(slug) {
+  if (!slug) return null;
+  for (const g of WOODS) for (const it of g.items) if (it.slug === slug) return { w: it, key: g.group + '/' + it.sku };
+  return null;
+}
+
+function shareWoodUrl() {
+  const hit = findWoodBySlug(activeWood && getWoodEntry(activeWood)?.slug);
+  const slug = hit ? hit.w.slug : 'lp-387';
+  const u = location.origin + location.pathname + '?wood=' + slug;
+  const done = () => {
+    const t = $('wpTarget');
+    t.textContent = `🔗 Đã sao chép link: ${u} — mở link là thấy sẵn ${hit ? hit.w.name : 'French Oak'} trên sàn`;
+    t.style.color = '#86efac';
+    $('woodPanel').classList.add('open');
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(u).then(done, () => fallbackCopy(u, done));
+  } else fallbackCopy(u, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  ta.remove(); done();
+}
+
+function applySharedWood() {
+  const slug = new URLSearchParams(location.search).get('wood');
+  const hit = findWoodBySlug(slug);
+  if (!hit) return;
+  // tô đậm mẫu trong bảng vật liệu
+  document.querySelectorAll('.wood-item').forEach(el => {
+    if (el.textContent.includes(hit.w.sku)) el.classList.add('selected');
+  });
+  // bề mặt chính = sàn rộng nhất (fallback: mesh to nhất)
+  let target = null, bestArea = -1;
+  for (const m of clickables) {
+    if (m.userData.surf !== 'Sàn') continue;
+    const b = new THREE.Box3().setFromObject(m);
+    const s = b.getSize(new THREE.Vector3());
+    const area = s.x * s.z;
+    if (area > bestArea) { bestArea = area; target = m; }
+  }
+  if (!target) {
+    let best = null, bd = -1;
+    for (const m of clickables) {
+      const b = new THREE.Box3().setFromObject(m);
+      const d = b.getSize(new THREE.Vector3()).length();
+      if (d > bd) { bd = d; best = m; }
+    }
+    target = best;
+  }
+  if (!target) return;
+  activeWood = hit.key;
+  selectSurface(target); // highlight + toast + áp luôn
+  const t = $('wpTarget');
+  t.textContent = `🔗 Mở theo link chia sẻ: đã áp ${hit.w.name} (${hit.w.sku}) lên ${target.userData.surf}. Bấm bề mặt khác để thử tiếp.`;
+  t.style.color = '#fde68a';
+  $('woodPanel').classList.add('open'); // mở bảng để thấy mẫu đang dùng
+}
+
+$('btnShare').addEventListener('click', shareWoodUrl);
 
 /* =========================================================
    CHỌN BỀ MẶT (raycast)
