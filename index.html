@@ -56,6 +56,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 .hud button { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #ddd; padding: 6px 11px; border-radius: 8px; cursor: pointer; font-size: 12px; transition: all .15s; font-family: inherit; white-space: nowrap; }
 .hud button:hover { background: rgba(255,255,255,.16); }
 .hud button.active { background: rgba(234,179,8,.25); border-color: #eab308; color: #fde68a; }
+.hud button.zoom { font-size: 16px; font-weight: 700; min-width: 32px; padding: 6px 8px; }
 .hud .sep { width: 1px; background: rgba(255,255,255,.12); margin: 2px 3px; }
 
 /* === WOOD PANEL (right drawer) === */
@@ -153,6 +154,8 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     <button id="hudOrbit" class="active">🔄 Xoay quanh</button>
     <button id="hudWalk">🚶 Đi bộ</button>
     <span class="sep"></span>
+    <button id="hudZoomIn" class="zoom">＋</button>
+    <button id="hudZoomOut" class="zoom">－</button>
     <button id="hudLight">☀ Ánh sáng</button>
     <button id="hudReset">⌂ Reset</button>
   </div>
@@ -992,6 +995,23 @@ function resetCam() {
   if (mode === 'walk') setMode('orbit');
   initCamera();
 }
+// Zoom +/- buttons
+$('hudZoomIn').addEventListener('click', () => {
+  try {
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    camera.position.addScaledVector(dir, 0.5);
+    clampCamera();
+  } catch(e) {}
+});
+$('hudZoomOut').addEventListener('click', () => {
+  try {
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    camera.position.addScaledVector(dir, -0.8);
+    clampCamera();
+  } catch(e) {}
+});
 // Ánh sáng 3 cấp: 0=Sáng nhất, 1=Vừa, 2=Tối
 const LIGHT_PRESETS = [
   { sun: 2.6, fill: 0.65, amb: 0.45, hemi: 0.4, label: '☀ Sáng nhất' },
