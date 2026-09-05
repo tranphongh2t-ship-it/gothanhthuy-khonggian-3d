@@ -791,29 +791,30 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
 function onPointerDown(e) {
-  if (e.button !== 0) return;
-  if (mode === 'walk') { walkMouseDown(e); return; }
-  if (!picking) return;
-  const r = renderer.domElement.getBoundingClientRect();
-  pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(clickables, false);
-  if (hits.length) {
-    selectSurface(hits[0].object);
-  }
+  try {
+    if (e.button !== 0) return;
+    if (mode === 'walk') { walkMouseDown(e); return; }
+    if (!picking) return;
+    const r = renderer.domElement.getBoundingClientRect();
+    pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(clickables, false);
+    if (hits.length) selectSurface(hits[0].object);
+  } catch(err) { console.warn('onPointerDown error:', err); }
 }
 function selectSurface(mesh) {
-  selected = mesh;
-  const b = new THREE.Box3().setFromObject(mesh);
-  const c = b.getCenter(new THREE.Vector3());
-  highlight.position.copy(c);
-  highlight.scale.copy(b.getSize(new THREE.Vector3()).addScalar(0.02));
-  highlight.visible = true;
-  const w = activeWood ? getWoodEntry(activeWood) : null;
-  toastSel.style.display = 'flex';
-  selName.textContent = `👆 ${mesh.userData.surf}: ${shortName(mesh)}` + (w ? ` — bấm “${w.name}” trong bảng để áp` : ' — mở 🪵 và chọn vân gỗ');
-  // nếu đang chọn sẵn gỗ thì áp luôn
-  if (w) applyWood(mesh);
+  try {
+    selected = mesh;
+    const b = new THREE.Box3().setFromObject(mesh);
+    const c = b.getCenter(new THREE.Vector3());
+    highlight.position.copy(c);
+    highlight.scale.copy(b.getSize(new THREE.Vector3()).addScalar(0.02));
+    highlight.visible = true;
+    const w = activeWood ? getWoodEntry(activeWood) : null;
+    toastSel.style.display = 'flex';
+    selName.textContent = `👆 ${mesh.userData.surf}: ${shortName(mesh)}` + (w ? ` — bấm “${w.name}” trong bảng để áp` : ' — mở 🪵 và chọn vân gỗ');
+    if (w) applyWood(mesh);
+  } catch(err) { console.warn('selectSurface error:', err); }
 }
 $('selClose').addEventListener('click', () => {
   selected = null; highlight.visible = false; toastSel.style.display = 'none';
@@ -841,15 +842,20 @@ function setMode(m) {
     renderer.domElement.classList.toggle('walking', m === 'walk');
     $('walkHint').style.display = m === 'walk' ? 'block' : 'none';
     if (m === 'walk') {
-      controls.saveState();
+      try { controls.saveState(); } catch(e) {}
       controls.enabled = false;
-      // Khởi tạo euler từ camera hiện tại
-      euler.setFromQuaternion(camera.quaternion);
-      walk.yaw = euler.y; walk.pitch = euler.x;
+      try {
+        euler.setFromQuaternion(camera.quaternion);
+        walk.yaw = euler.y; walk.pitch = euler.x;
+      } catch(e) { walk.yaw = 0; walk.pitch = 0; }
     } else {
       controls.enabled = true;
-      controls.reset();
-      if (document.pointerLockElement) document.exitPointerLock();
+      try { controls.reset(); } catch(e) {
+        // Nếu reset fail thì set lại thủ công
+        controls.target.set(0, 1.35, 0);
+        initCamera();
+      }
+      try { if (document.pointerLockElement) document.exitPointerLock(); } catch(e) {}
     }
   } catch(err) { console.warn('setMode error:', err); }
 }
@@ -873,10 +879,12 @@ function walkMouseDown(e) {
   try { renderer.domElement.requestPointerLock(); } catch(err) { console.warn('PointerLock failed:', err); }
 }
 document.addEventListener('pointerlockchange', () => {
-  if (document.pointerLockElement === renderer.domElement && mode === 'walk') {
-    euler.setFromQuaternion(camera.quaternion);
-    walk.yaw = euler.y; walk.pitch = euler.x;
-  }
+  try {
+    if (document.pointerLockElement === renderer.domElement && mode === 'walk') {
+      euler.setFromQuaternion(camera.quaternion);
+      walk.yaw = euler.y; walk.pitch = euler.x;
+    }
+  } catch(err) { console.warn('pointerlockchange error:', err); }
 });
 document.addEventListener('mousemove', e => {
   try {
@@ -929,28 +937,32 @@ function updateWalk(dt) {
 const clock = new THREE.Clock();
 function clampCamera() {
   if (!roomBox) return;
-  const MX = 0.15;
-  // Clamp camera position
-  camera.position.x = Math.max(roomBox.min.x + MX, Math.min(roomBox.max.x - MX, camera.position.x));
-  camera.position.z = Math.max(roomBox.min.z + MX, Math.min(roomBox.max.z - MX, camera.position.z));
-  // Clamp controls target (quan trọng khi kéo xoay)
-  if (controls.target) {
-    controls.target.x = Math.max(roomBox.min.x + MX, Math.min(roomBox.max.x - MX, controls.target.x));
-    controls.target.z = Math.max(roomBox.min.z + MX, Math.min(roomBox.max.z - MX, controls.target.z));
-  }
-  if (mode !== 'walk') {
-    camera.position.y = Math.max(roomBox.min.y + 1.0, Math.min(roomBox.max.y - 0.3, camera.position.y));
-    controls.target.y = Math.max(roomBox.min.y + 0.5, Math.min(roomBox.max.y - 0.5, controls.target.y));
-  }
+  try {
+    const MX = 0.15;
+    // Clamp camera position
+    camera.position.x = Math.max(roomBox.min.x + MX, Math.min(roomBox.max.x - MX, camera.position.x));
+    camera.position.z = Math.max(roomBox.min.z + MX, Math.min(roomBox.max.z - MX, camera.position.z));
+    // Clamp controls target (quan trọng khi kéo xoay)
+    if (controls && controls.target) {
+      controls.target.x = Math.max(roomBox.min.x + MX, Math.min(roomBox.max.x - MX, controls.target.x));
+      controls.target.z = Math.max(roomBox.min.z + MX, Math.min(roomBox.max.z - MX, controls.target.z));
+    }
+    if (mode !== 'walk') {
+      camera.position.y = Math.max(roomBox.min.y + 1.0, Math.min(roomBox.max.y - 0.3, camera.position.y));
+      if (controls && controls.target) {
+        controls.target.y = Math.max(roomBox.min.y + 0.5, Math.min(roomBox.max.y - 0.5, controls.target.y));
+      }
+    }
+  } catch(err) {}
 }
 function loop() {
   try {
     const dt = Math.min(clock.getDelta(), 0.05);
     if (mode === 'walk') updateWalk(dt);
-    else if (controls.enabled) {
-      clampCamera(); // clamp TRƯỚC controls.update()
-      controls.update();
-      clampCamera(); // clamp SAU controls.update()
+    else if (controls && controls.enabled) {
+      clampCamera();
+      try { controls.update(); } catch(e) { console.warn('controls.update error:', e); }
+      clampCamera();
     }
     if (selected && selected.parent) {
       const b = new THREE.Box3().setFromObject(selected);
