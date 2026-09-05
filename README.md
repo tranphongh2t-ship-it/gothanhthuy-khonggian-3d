@@ -7,13 +7,13 @@ Chạy hoàn toàn trên trình duyệt — Three.js + GLB (Draco nén), không 
 
 ## Xem thử
 
-GitHub Pages: `https://<user>.github.io/gothanhthuy-khonggian-3d/`
+GitHub Pages: **https://tranphongh2t-ship-it.github.io/gothanhthuy-khonggian-3d/**
 
 ## Nhúng vào website
 
 ```html
 <iframe
-  src="https://<user>.github.io/gothanhthuy-khonggian-3d/"
+  src="https://tranphongh2t-ship-it.github.io/gothanhthuy-khonggian-3d/"
   width="100%"
   height="600"
   style="border:0; border-radius:12px;"
