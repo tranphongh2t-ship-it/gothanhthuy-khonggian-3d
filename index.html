@@ -525,18 +525,25 @@ async function loadModel() {
 }
 
 function classifySurf(matName, mesh) {
-  const s = (matName + ' ' + mesh.name).toLowerCase();
+  const raw = (matName || '' ) + '|' + (mesh.name || '');
+  const s = raw.toLowerCase();
   const b = new THREE.Box3().setFromObject(mesh);
   const n = b.getSize(new THREE.Vector3());
   const isFloor = n.y < Math.min(n.x, n.z) * 0.25 && n.y < 0.35 && b.min.y < 0.15;
-  if (isFloor) return 'Sàn';
-  if (/floor|piso|suelo|ground/.test(s)) return 'Sàn';
+  // === Tên nội thất tiếng Việt ===
+  if (isFloor || /floor|piso|suelo|ground/.test(s)) return 'Sàn nhà';
   if (/pared|wall|tường|fachada/.test(s)) return 'Tường';
-  if (/techo|ceiling|tran/.test(s)) return 'Trần';
-  if (/madera|wood|cabinet|tủ|gỗ|mueble|puerta|door/.test(s)) return 'Gỗ / Tủ bếp';
-  if (/encimera|counter|mặt bàn|top|mesa/.test(s)) return 'Mặt bàn';
-  if (/cristal|vidrio|glass|kính/.test(s)) return 'Kính';
-  if (/acero|metal|inox/.test(s)) return 'Kim loại';
+  if (/techo|ceiling|tran/.test(s)) return 'Trần nhà';
+  if (/madera_cocina|madera/.test(s)) return 'Tủ bếp dưới';
+  if (/wood_1/.test(s)) return 'Tủ bếp trên / Gỗ ốp';
+  if (/encimera|counter|mặt bàn|top|mesa|palette.*material|material.*[26]/.test(s)) return 'Mặt đá bàn bếp';
+  if (/marco_empotramiento|marco_interior/.test(s)) return 'Khung tủ';
+  if (/panel_de_mandos/.test(s)) return 'Bảng điều khiển lò';
+  if (/hora_reloj/.test(s)) return 'Đồng hồ';
+  if (/metal_corrogated|corrogate/.test(s)) return 'Tấm kim loại';
+  if (/acero|inox|carcosa/.test(s)) return 'Inox tủ lạnh';
+  if (/leaf|cây|planta/.test(s)) return 'Cây xanh';
+  if (/b113|standardmaterial/.test(s)) return 'Bề mặt phụ';
   return 'Bề mặt';
 }
 
@@ -544,12 +551,11 @@ function initCamera() {
   const b = new THREE.Box3().setFromObject(modelRoot);
   const c = b.getCenter(new THREE.Vector3());
   const sz = b.getSize(new THREE.Vector3());
-  const r = Math.max(sz.x, sz.z, 2.2);
-  // Đặt camera ngoài phòng, nhìn vào tâm
-  camera.position.set(c.x - r * 1.1, 1.65, c.z + r * 0.9);
-  controls.target.set(c.x, 1.35, c.z);
-  controls.minDistance = 0.8;
-  controls.maxDistance = r * 4;
+  // Camera ở giữa phòng, nhìn nghiêng vào tủ bếp
+  camera.position.set(c.x, 1.55, c.z + sz.z * 0.35);
+  controls.target.set(c.x, 1.2, c.z - sz.z * 0.15);
+  controls.minDistance = 0.5;
+  controls.maxDistance = sz.x * 3;
   controls.update();
 }
 
@@ -652,12 +658,12 @@ function buildSurfaceMenu() {
     if (!groups[t]) groups[t] = [];
     groups[t].push(m);
   });
-  const order = ['Sàn', 'Gỗ / Tủ bếp', 'Mặt bàn', 'Tường', 'Trần', 'Kính', 'Kim loại', 'Bề mặt', 'Khác'];
+  const order = ['Tủ bếp dưới', 'Tủ bếp trên / Gỗ ốp', 'Mặt đá bàn bếp', 'Sàn nhà', 'Tường', 'Trần nhà', 'Khung tủ', 'Bảng điều khiển lò', 'Inox tủ lạnh', 'Tấm kim loại', 'Cây xanh', 'Đồng hồ', 'Bề mặt phụ', 'Bề mặt'];
   order.forEach(type => {
     const items = groups[type];
     if (!items || !items.length) return;
     const gh = document.createElement('div'); gh.className = 'surf-group';
-    const icon = { 'Sàn': '🟫', 'Gỗ / Tủ bếp': '🚪', 'Mặt bàn': '🔳', 'Tường': '🧱', 'Trần': '⬜', 'Kính': '🔲', 'Kim loại': '⚙️' }[type] || '📐';
+    const icon = { 'Sàn nhà': '🟫', 'Tủ bếp dưới': '🚪', 'Tủ bếp trên / Gỗ ốp': '🗄️', 'Mặt đá bàn bếp': '🔲', 'Tường': '🧱', 'Trần nhà': '⬜', 'Khung tủ': '🪟', 'Bảng điều khiển lò': '🎛️', 'Đồng hồ': '🕐', 'Tấm kim loại': '⚙️', 'Inox tủ lạnh': '🧊', 'Cây xanh': '🌿', 'Bề mặt phụ': '📐' }[type] || '📐';
     gh.innerHTML = `<span class="surf-icon">${icon}</span> <span class="surf-type">${type}</span> <span class="surf-count">${items.length}</span>`;
     list.appendChild(gh);
     items.forEach(m => {
