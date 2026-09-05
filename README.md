@@ -26,7 +26,7 @@ GitHub Pages: **https://tranphongh2t-ship-it.github.io/gothanhthuy-khonggian-3d/
 ```
 ├── index.html            Viewer (tự chứa: Three.js + thư viện load từ CDN)
 ├── models/kitchen-draco.glb   Model phòng bếp (6 MB, Draco)
-├── textures/             18 ảnh vân gỗ thật (webp 1024px, ~760 KB tổng)
+├── textures/             119 ảnh vân gỗ thật (webp 1024px, ~6 MB tổng)
 └── README.md
 ```
 
@@ -47,39 +47,40 @@ Ví dụ: `index.html?wood=lp-335` → tự áp Plum Walnut lên sàn.
 2. Bỏ file vào `models/` và mở trang với tham số: `index.html?model=models/ten-file.glb`
    (không có tham số thì mặc định dùng `models/kitchen-draco.glb`).
 
+## Điều khiển
+
+- **Kéo chuột** → xoay camera quanh phòng
+- **Cuộn chuột** → zoom vào/ra
+- **🚶 Đi bộ (WASD)** → di chuyển tự do trong phòng
+- **👆 Chọn bề mặt** → bấm vào sàn/tường/tủ để thay gỗ
+- **📋 Bề mặt** → xem danh sách tất cả bề mặt có thể thay gỗ
+- **☀ Ánh sáng** → chuyển 3 cấp: Sáng nhất / Sáng vừa / Tối
+- **🔗 Chia sẻ** → sao chép link với gỗ đang chọn
+- **⌂ Reset** → về góc nhìn mặc định
+
 ## Mẹo model chuẩn để thay vật liệu tốt
 
 - Mỗi bề mặt nên là **1 mesh/material riêng** (sàn 1 material, tường 1 material, tủ 1 material…).
 - Đặt tên material gợi ý bề mặt (`PISO`/sàn, `PARED`/tường, `TECHO`/trần, `MADERA`/tủ…) — khi bấm vào mesh, viewer hiển thị tên bề mặt đó.
 - Tránh gộp cả phòng vào 1 mesh duy nhất (khi đó chỉ đổi được 1 bề mặt).
 
-## Vật liệu gỗ — 18/18 đều có ảnh sản phẩm thật
+## Vật liệu gỗ — 110 sản phẩm Thanh Thùy
 
-Toàn bộ 18 vân gỗ Thanh Thùy dùng **ảnh sản phẩm chụp thật** trong `textures/`
-(webp 1024×512, tile seamless, preload song song với model) — không còn mẫu nào
-sinh bằng canvas. Mỗi thumbnail hiển thị **badge mã nguồn catalog** ở góc dưới trái
-để khách đối chiếu với catalog Thanh Thùy:
+**110 vân gỗ** từ catalog Thanh Thùy, tổ chức theo nhóm:
 
-| Mã trong viewer | Tên hiển thị | Mã catalog thật |
+| Nhóm | Số mẫu | Ví dụ |
 |---|---|---|
-| `lp-387` | French Oak | LP 387EV |
-| `lp-388` | Oak Santana | LP 388EV |
-| `lp-389` | Sonama Oak | LP 389EV |
-| `lp-428` | Riviera Oak | LP 428T |
-| `lp-611` | Banstead Oak | LP 611WN |
-| `lp-240` | Metallic Oak | LP 240T |
-| `lp-319` | Classical Walnut | LP 319EV |
-| `lp-332` | Virgina Walnut | LP 332WN |
-| `lp-333` | Columbia Walnut | LP 333WN |
-| `lp-335` | Plum Walnut | LP 335T |
-| `lp-612` | Snug Walnut | LP 612WN |
-| `lp-448` | Lyon Walnut | LP 448EV |
-| `tt-212` | Bavarian Beech | TT 212 |
-| `tt-217` | White Beech | TT 217 |
-| `tt-452` | Jasmund Beech | TT 452 |
-| `te-01` | Gỗ tếch (Teak) | TTWO 609 Yellow Teak |
-| `ch-01` | Anh đào (Cherry) | TTWO 385 Natural Cherry |
-| `mp-01` | Phong (Maple) | TTWO 325 Maple |
+| OAK · Vân Sồi (LP Laminate) | 12 | French Oak, Riviera Oak, Coburg Oak… |
+| WALNUT · Vân Óc Chó (LP) | 12 | Classical Walnut, Plum Walnut, Lyon Walnut… |
+| OAK · Vân Sồi (TTWO Melamine) | 27 | Roman Oak, Antique Oak, Vogue Oak… |
+| WALNUT · Vân Óc Chó (TTWO) | 25 | Dark Walnut, Wenge, American Black Walnut… |
+| BEECH · Vân Dẻ Gai | 3 | Bavarian Beech, White Beech, Jasmund Beech |
+| HICKORY · Vân Dẻ Gai Mỹ | 3 | Natural Hickory, Breeze Hickory |
+| ACACIA · Vân Acacia | 2 | Moldau Acacia |
+| MAPLE / CHERRY | 8 | Wyoming Maple, Natural Cherry, Myoming Maple… |
+| TEAK · Vân Tếch | 3 | Yellow Teak, Maldives Teak, Sunset Teak |
+| SOLID · Màu Đặc | 10 | White, Magic Black, Latte, Shadow… |
+| MARBLE · Vân Đá | 3 | Marquina Marble, Volakas Marble |
 
 Tất cả khai báo trong mảng `WOODS` đầu file `index.html` — mỗi mẫu có đủ
 `slug` (dùng cho link chia sẻ), `tex` (ảnh thật) và `src` (mã catalog hiện trên badge).
