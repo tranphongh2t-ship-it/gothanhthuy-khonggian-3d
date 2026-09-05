@@ -689,24 +689,23 @@ function applyWood(mesh) {
   const w = getWoodEntry(activeWood);
   if (!w || !mesh) return;
   if (!origMats.has(mesh)) origMats.set(mesh, mesh.material);
-  const key = activeWood;
-  let entry = woodCache.get(key);
-  if (!entry) {
-    const b = new THREE.Box3().setFromObject(mesh);
-    const diag = b.getSize(new THREE.Vector3()).length();
-    const mat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.04, envMapIntensity: 0.6 });
-    if (w.tex && photoTex.has(w.tex)) {
-      const tex = photoTex.get(w.tex);
-      tex.repeat.set(2, 2); // lặp tấm ván theo bề mặt
-      mat.map = tex;
-    } else {
-      mat.map = makeWoodTexture(w, diag > 1.4 ? diag / 2.2 : 1);
-    }
-    entry = { tex: mat.map, mat };
-    woodCache.set(key, entry);
+  // Tạo material mới cho mỗi bề mặt (texture repeat theo kích thước)
+  const b = new THREE.Box3().setFromObject(mesh);
+  const diag = b.getSize(new THREE.Vector3()).length();
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.04, envMapIntensity: 0.6 });
+  if (w.tex && photoTex.has(w.tex)) {
+    const srcTex = photoTex.get(w.tex);
+    const tex = srcTex.clone();
+    // Tính repeat theo kích thước bề mặt: 1 tấm ≈ 20cm
+    const rep = Math.max(1, Math.round(diag / 0.2));
+    tex.repeat.set(rep, rep);
+    tex.needsUpdate = true;
+    mat.map = tex;
+  } else {
+    mat.map = makeWoodTexture(w, diag > 1.4 ? diag / 2.2 : 1);
   }
-  mesh.material = entry.mat;
-  entry.mat.needsUpdate = true;
+  mesh.material = mat;
+  mat.needsUpdate = true;
   toastSel.style.display = 'flex';
   selName.textContent = `🪵 ${w.name} (${w.sku}) → ${mesh.userData.surf}: ${shortName(mesh)}`;
 }
