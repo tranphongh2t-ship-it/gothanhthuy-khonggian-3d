@@ -491,12 +491,12 @@ async function loadModel() {
     const c2 = b2.getCenter(new THREE.Vector3());
     modelRoot.position.sub(new THREE.Vector3(c2.x, b2.min.y, c2.z));
     scene.add(modelRoot);
-    // Room bounds — camera clamp trong vùng an toàn
+    // Room bounds — giữ camera trong vùng xem được
     roomBox = new THREE.Box3().setFromObject(modelRoot);
-    // Mở rộng bounds cho camera xoay tự do ngoài phòng
-    roomBox.min.x -= 3; roomBox.max.x += 3;
-    roomBox.min.z -= 3; roomBox.max.z += 3;
-    roomBox.min.y = -0.5; roomBox.max.y = 4.0;
+    // Mở rộng để camera xoay ngoài phòng nhưng không quá xa
+    roomBox.min.x -= 1.8; roomBox.max.x += 1.8;
+    roomBox.min.z -= 1.8; roomBox.max.z += 1.8;
+    roomBox.min.y = -0.3; roomBox.max.y = 3.5;
     controls.target.set(0, 1.4, 0);
     // --- Clickables: mọi mesh trừ background/trần nền ---
     clickables = [];
@@ -929,21 +929,29 @@ function updateWalk(dt) {
 const clock = new THREE.Clock();
 function clampCamera() {
   if (!roomBox) return;
-  const MARGIN = 0.3;
-  camera.position.x = Math.max(roomBox.min.x + MARGIN, Math.min(roomBox.max.x - MARGIN, camera.position.x));
-  camera.position.z = Math.max(roomBox.min.z + MARGIN, Math.min(roomBox.max.z - MARGIN, camera.position.z));
+  const MX = 0.15;
+  // Clamp camera position
+  camera.position.x = Math.max(roomBox.min.x + MX, Math.min(roomBox.max.x - MX, camera.position.x));
+  camera.position.z = Math.max(roomBox.min.z + MX, Math.min(roomBox.max.z - MX, camera.position.z));
+  // Clamp controls target (quan trọng khi kéo xoay)
+  if (controls.target) {
+    controls.target.x = Math.max(roomBox.min.x + MX, Math.min(roomBox.max.x - MX, controls.target.x));
+    controls.target.z = Math.max(roomBox.min.z + MX, Math.min(roomBox.max.z - MX, controls.target.z));
+  }
   if (mode !== 'walk') {
     camera.position.y = Math.max(roomBox.min.y + 1.0, Math.min(roomBox.max.y - 0.3, camera.position.y));
-    controls.target.x = Math.max(roomBox.min.x, Math.min(roomBox.max.x, controls.target.x));
-    controls.target.z = Math.max(roomBox.min.z, Math.min(roomBox.max.z, controls.target.z));
+    controls.target.y = Math.max(roomBox.min.y + 0.5, Math.min(roomBox.max.y - 0.5, controls.target.y));
   }
 }
 function loop() {
   try {
     const dt = Math.min(clock.getDelta(), 0.05);
     if (mode === 'walk') updateWalk(dt);
-    else if (controls.enabled) controls.update();
-    clampCamera();
+    else if (controls.enabled) {
+      clampCamera(); // clamp TRƯỚC controls.update()
+      controls.update();
+      clampCamera(); // clamp SAU controls.update()
+    }
     if (selected && selected.parent) {
       const b = new THREE.Box3().setFromObject(selected);
       const c = b.getCenter(new THREE.Vector3());
