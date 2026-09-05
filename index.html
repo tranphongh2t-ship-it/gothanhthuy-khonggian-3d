@@ -167,30 +167,30 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 // Màu tham khảo từ ảnh thật các mã (LP/LB/TT) trong catalog.
 const WOODS = [
   { group: 'OAK · Vân Sồi', items: [
-    { name: 'French Oak',        sku: 'LP 387EV',   slug: 'lp-387', tex: 'textures/lp-387.webp', c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
-    { name: 'Oak Santana',       sku: 'LP 388EV',   slug: 'lp-388', tex: 'textures/lp-388.webp', c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
-    { name: 'Sonama Oak',        sku: 'LP 389EV',   slug: 'lp-389', tex: 'textures/lp-389.webp', c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
-    { name: 'Riviera Oak',       sku: 'LP 428T',    slug: 'lp-428', tex: 'textures/lp-428.webp', c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
-    { name: 'Banstead Oak',      sku: 'LP 611WN',   slug: 'lp-611', tex: 'textures/lp-611.webp', c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
-    { name: 'Metallic Oak',      sku: 'LP 240T',    slug: 'lp-240', tex: 'textures/lp-240.webp', c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
+    { name: 'French Oak',        sku: 'LP 387EV',   slug: 'lp-387', src: 'LP 387EV', tex: 'textures/lp-387.webp', c1: '#c8a06a', c2: '#8a5f33', grain: 3, twist: .05 },
+    { name: 'Oak Santana',       sku: 'LP 388EV',   slug: 'lp-388', src: 'LP 388EV', tex: 'textures/lp-388.webp', c1: '#bf9258', c2: '#7c5226', grain: 2.6, twist: .06 },
+    { name: 'Sonama Oak',        sku: 'LP 389EV',   slug: 'lp-389', src: 'LP 389EV', tex: 'textures/lp-389.webp', c1: '#d2ab73', c2: '#97703c', grain: 2.8, twist: .04 },
+    { name: 'Riviera Oak',       sku: 'LP 428T',    slug: 'lp-428', src: 'LP 428T', tex: 'textures/lp-428.webp', c1: '#c49a5e', c2: '#83582c', grain: 2.4, twist: .07 },
+    { name: 'Banstead Oak',      sku: 'LP 611WN',   slug: 'lp-611', src: 'LP 611WN', tex: 'textures/lp-611.webp', c1: '#cfa269', c2: '#94652f', grain: 3.2, twist: .05 },
+    { name: 'Metallic Oak',      sku: 'LP 240T',    slug: 'lp-240', src: 'LP 240T', tex: 'textures/lp-240.webp', c1: '#c7a977', c2: '#8f6f3e', grain: 2, twist: .03 },
   ]},
   { group: 'WALNUT · Vân Óc Chó', items: [
-    { name: 'Classical Walnut',  sku: 'LP 319EV',   slug: 'lp-319', tex: 'textures/lp-319.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
-    { name: 'Virgina Walnut',    sku: 'LP 332WN',   slug: 'lp-332', tex: 'textures/lp-332.webp', c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
-    { name: 'Columbia Walnut',   sku: 'LP 333WN',   slug: 'lp-333', tex: 'textures/lp-333.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
-    { name: 'Plum Walnut',       sku: 'LP 335T',    slug: 'lp-335', tex: 'textures/lp-335.webp', c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
-    { name: 'Snug Walnut',       sku: 'LP 612WN',   slug: 'lp-612', tex: 'textures/lp-612.webp', c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
-    { name: 'Lyon Walnut',       sku: 'LP 448EV',   slug: 'lp-448', tex: 'textures/lp-448.webp', c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
+    { name: 'Classical Walnut',  sku: 'LP 319EV',   slug: 'lp-319', src: 'LP 319EV', tex: 'textures/lp-319.webp', c1: '#8a5a3b', c2: '#4a2c18', grain: 2.6, twist: .06 },
+    { name: 'Virgina Walnut',    sku: 'LP 332WN',   slug: 'lp-332', src: 'LP 332WN', tex: 'textures/lp-332.webp', c1: '#96603a', c2: '#4f2f1b', grain: 3, twist: .05 },
+    { name: 'Columbia Walnut',   sku: 'LP 333WN',   slug: 'lp-333', src: 'LP 333WN', tex: 'textures/lp-333.webp', c1: '#7e5236', c2: '#3e2614', grain: 2.4, twist: .07 },
+    { name: 'Plum Walnut',       sku: 'LP 335T',    slug: 'lp-335', src: 'LP 335T', tex: 'textures/lp-335.webp', c1: '#8d6043', c2: '#4c2f1a', grain: 2.8, twist: .05 },
+    { name: 'Snug Walnut',       sku: 'LP 612WN',   slug: 'lp-612', src: 'LP 612WN', tex: 'textures/lp-612.webp', c1: '#845636', c2: '#432818', grain: 2.2, twist: .06 },
+    { name: 'Lyon Walnut',       sku: 'LP 448EV',   slug: 'lp-448', src: 'LP 448EV', tex: 'textures/lp-448.webp', c1: '#90603c', c2: '#48291a', grain: 3.1, twist: .06 },
   ]},
   { group: 'WOODGRAIN · Tấm TT', items: [
-    { name: 'Bavarian Beech',    sku: 'TT 212',     slug: 'tt-212', tex: 'textures/tt-212.webp', c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
-    { name: 'White Beech',       sku: 'TT 217',     slug: 'tt-217', tex: 'textures/tt-217.webp', c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
-    { name: 'Jasmund Beech',     sku: 'TT 452',     slug: 'tt-452', tex: 'textures/tt-452.webp', c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
+    { name: 'Bavarian Beech',    sku: 'TT 212',     slug: 'tt-212', src: 'TT 212', tex: 'textures/tt-212.webp', c1: '#d8b784', c2: '#9d7a45', grain: 3.4, twist: .04 },
+    { name: 'White Beech',       sku: 'TT 217',     slug: 'tt-217', src: 'TT 217', tex: 'textures/tt-217.webp', c1: '#e3cba0', c2: '#b3925c', grain: 3, twist: .05 },
+    { name: 'Jasmund Beech',     sku: 'TT 452',     slug: 'tt-452', src: 'TT 452', tex: 'textures/tt-452.webp', c1: '#d3b078', c2: '#96703c', grain: 2.7, twist: .06 },
   ]},
   { group: 'MÀU TỰ NHIÊN', items: [
-    { name: 'Gỗ tếch (Teak)',    sku: 'TE-01',      slug: 'te-01', tex: 'textures/te-01.webp', c1: '#b58250', c2: '#7c5227', grain: 2, twist: .09 },
-    { name: 'Anh đào (Cherry)',  sku: 'CH-01',      slug: 'ch-01', tex: 'textures/ch-01.webp', c1: '#b06a44', c2: '#74381f', grain: 1.8, twist: .08 },
-    { name: 'Phong (Maple)',     sku: 'MP-01',      slug: 'mp-01', tex: 'textures/mp-01.webp', c1: '#e2cfae', c2: '#c0a378', grain: 3.4, twist: .03 },
+    { name: 'Gỗ tếch (Teak)',    sku: 'TE-01',      slug: 'te-01', src: 'TTWO 609', tex: 'textures/te-01.webp', c1: '#b58250', c2: '#7c5227', grain: 2, twist: .09 },
+    { name: 'Anh đào (Cherry)',  sku: 'CH-01',      slug: 'ch-01', src: 'TTWO 385', tex: 'textures/ch-01.webp', c1: '#b06a44', c2: '#74381f', grain: 1.8, twist: .08 },
+    { name: 'Phong (Maple)',     sku: 'MP-01',      slug: 'mp-01', src: 'TTWO 325', tex: 'textures/mp-01.webp', c1: '#e2cfae', c2: '#c0a378', grain: 3.4, twist: .03 },
   ]},
 ];
 
@@ -440,6 +440,14 @@ function buildWoodPanel() {
           const sc = Math.max(84 / img.width, 84 / img.height);
           const sw = 84 / sc, sh = 84 / sc;
           g.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, 84, 84);
+          // nhãn mã nguồn catalog (LP/TTWO/TT) — badge nhỏ góc dưới trái
+          const t = w.src || w.sku;
+          g.font = '600 10px system-ui, sans-serif';
+          const tw = g.measureText(t).width;
+          g.fillStyle = 'rgba(10,10,12,0.72)';
+          g.beginPath(); g.roundRect(2, 84 - 15, tw + 8, 13, 4); g.fill();
+          g.fillStyle = '#f5f5f5';
+          g.fillText(t, 6, 84 - 5);
         };
         img.src = w.tex;
       }
