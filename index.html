@@ -822,31 +822,32 @@ function applyWood(mesh) {
     mat = new THREE.MeshStandardMaterial({ roughness, metalness, envMapIntensity: envInt, side: THREE.DoubleSide });
   }
   if (w.tex) {
-    const plankW = 0.35;
-    const rx = Math.max(1, Math.round(faceW / plankW));
-    const ry = Math.max(1, Math.round(faceH / (plankW * 2)));
+    // Ảnh source 4096×2048 đã chứa vân gỗ tự nhiên (~1.2m×0.6m per tile)
+    // Giảm repeat để tránh dấu ô vuông (grid artifact)
+    const tileSize = 1.2; // mỗi tile ảnh = ~1.2m bề ngang
+    const rx = Math.max(1, Math.round(faceW / tileSize));
+    const ry = Math.max(1, Math.round(faceH / (tileSize * 0.5)));
     // Hướng vân: ảnh gốc = vân ngang. Tủ cần vân dọc → xoay 90°
     const isVertical = /tủ|kệ|door|cabinet|madera|wood_|khung/.test(surf);
-    // Tủ luôn vân dọc, sàn/ngang vân ngang, user override bằng grainRot
     const needRotate = isVertical !== !!mesh.userData.grainRot;
     const srcTex = getOrLoadTexture(w.tex);
-    // Tạo texture mới từ image (không clone) → tránh shared GPU state
     const tex = srcTex ? new THREE.Texture(srcTex.image) : null;
     if (tex) {
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
       tex.repeat.set(rx, ry);
-      // XOAY texture 90° quanh tâm → vân chạy dọc
+      // Offset ngẫu nhiên để tránh lặp pattern rõ ràng
+      tex.offset.set(Math.random() * 0.1, Math.random() * 0.1);
       tex.center.set(0.5, 0.5);
       tex.rotation = needRotate ? Math.PI / 2 : 0;
       tex.needsUpdate = true;
-      console.log(`[WOOD] ${shortName(mesh)} rot=${(tex.rotation*180/Math.PI).toFixed(0)}° repeat=${rx.toFixed(1)}x${ry.toFixed(1)} fw=${faceW.toFixed(2)} fh=${faceH.toFixed(2)} vert=${isVertical} rot=${needRotate}`);
+      console.log(`[WOOD] ${shortName(mesh)} rot=${(tex.rotation*180/Math.PI).toFixed(0)}° repeat=${rx}x${ry} fw=${faceW.toFixed(2)} fh=${faceH.toFixed(2)}`);
     }
     mat.map = tex;
   } else {
     const tex = makeWoodTexture(w, faceW > 0.5 ? faceW / 0.6 : 1);
-    tex.repeat.set(Math.max(1, Math.round(faceW / 0.4)), Math.max(1, Math.round(faceH / 0.25)));
+    tex.repeat.set(Math.max(1, Math.round(faceW / 1.0)), Math.max(1, Math.round(faceH / 0.5)));
     mat.map = tex;
   }
   // Push to undo stack before changing material
