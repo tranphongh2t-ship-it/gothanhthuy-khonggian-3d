@@ -1319,9 +1319,8 @@ document.addEventListener('mousemove', e => {
   } catch(err) {}
 });
 
-$('woodOpen').addEventListener('click', () => $('woodPanel').classList.toggle('open'));
-$('btnWood').addEventListener('click', () => $('woodPanel').classList.toggle('open'));
-$('closePanel').addEventListener('click', () => $('woodPanel').classList.remove('open'));
+if ($('woodOpen')) $('woodOpen').addEventListener('click', () => $('woodPanel').classList.toggle('open'));
+if ($('closePanel')) $('closePanel').addEventListener('click', () => $('woodPanel').classList.remove('open'));
 
 renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
