@@ -709,42 +709,62 @@ function applyWood(mesh) {
   if (!w || !mesh) return;
   if (!origMats.has(mesh)) origMats.set(mesh, mesh.material);
   const b = new THREE.Box3().setFromObject(mesh);
-  const diag = b.getSize(new THREE.Vector3()).length();
+  const sz = b.getSize(new THREE.Vector3());
+  const diag = sz.length();
   const surf = (mesh.userData.surf || '').toLowerCase();
-  // Độ bóng gương theo loại bề mặt
-  let roughness = 0.35, metalness = 0.02, envInt = 1.0;
-  if (/đá|counter|mesa|palette|bếp/.test(surf)) { roughness = 0.12; metalness = 0.06; envInt = 1.4; }
-  else if (/kim loại|metal|inox/.test(surf)) { roughness = 0.05; metalness = 0.6; envInt = 1.8; }
-  else if (/trần|techo|ceiling/.test(surf)) { roughness = 0.55; metalness = 0.0; envInt = 0.5; }
-  else if (/sàn|floor|piso/.test(surf)) { roughness = 0.4; metalness = 0.01; envInt = 0.7; }
-  else if (/tủ|kệ|wood|madera/.test(surf)) { roughness = 0.3; metalness = 0.02; envInt = 1.1; }
+  // Determine dominant face dimensions (UV is typically on XZ for floor/ceiling, XY for walls)
+  const isFlat = /sàn|floor|piso|trần|techo|ceiling/.test(surf);
+  const faceW = isFlat ? Math.max(sz.x, sz.z) : Math.max(sz.x, sz.y);
+  const faceH = isFlat ? Math.min(sz.x, sz.z) : Math.min(sz.x, sz.y);
+  // Độ bóng gương theo loại bề mặt (giảm clearcoat/sheen cho gỗ để giữ đúng màu)
+  let roughness = 0.35, metalness = 0.02, envInt = 0.9;
+  let clearcoat = 0.0, sheen = 0.0, sheenColorHex = 0x000000;
+  if (/đá|counter|mesa|palette|bếp|stone/.test(surf)) {
+    roughness = 0.1; metalness = 0.06; envInt = 1.4;
+    clearcoat = 0.4; // đá bóng gương mạnh
+  } else if (/kim loại|metal|inox/.test(surf)) {
+    roughness = 0.05; metalness = 0.6; envInt = 1.8;
+    clearcoat = 0.5;
+  } else if (/trần|techo|ceiling/.test(surf)) {
+    roughness = 0.55; metalness = 0.0; envInt = 0.4;
+  } else if (/sàn|floor|piso/.test(surf)) {
+    roughness = 0.38; metalness = 0.01; envInt = 0.7;
+    clearcoat = 0.15; // sàn bóng nhẹ
+    sheen = 0.08;
+    sheenColorHex = 0x6b5b3a;
+  } else if (/tủ|kệ|wood|madera/.test(surf)) {
+    roughness = 0.32; metalness = 0.02; envInt = 1.0;
+    clearcoat = 0.2; // gỗ tủ bóng vừa
+    sheen = 0.1;
+    sheenColorHex = 0x8b7355;
+  }
   const mat = new THREE.MeshPhysicalMaterial({
     roughness, metalness,
     envMapIntensity: envInt,
     side: THREE.DoubleSide,
-    clearcoat: 0.3,
-    clearcoatRoughness: 0.25,
-    sheen: 0.15,
-    sheenRoughness: 0.4,
-    sheenColor: new THREE.Color(0x8b7355),
+    clearcoat, clearcoatRoughness: 0.25,
+    sheen, sheenRoughness: 0.4, sheenColor: new THREE.Color(sheenColorHex),
   });
   if (w.tex && photoTex.has(w.tex)) {
-    // Load ảnh mới thay vì clone (clone không giữ image data đúng)
     const tex = texLoader.load(w.tex, tx => {
       tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
       tx.colorSpace = THREE.SRGBColorSpace;
       tx.anisotropy = 16;
       tx.minFilter = THREE.LinearMipmapLinearFilter;
       tx.magFilter = THREE.LinearFilter;
-      // Repeat theo kích thước bề mặt (tấm ván ~20cm lặp)
-      const plankUnit = 0.2;
-      const rx = Math.max(1, Math.round(diag / plankUnit));
-      tx.repeat.set(rx, Math.max(1, Math.round(diag / plankUnit * 0.5)));
+      // Repeat theo thực tế: ván gỗ ~20cm x 120cm, repeat = bề mặt / ván
+      const plankW = 0.2; // rộng ván
+      const rx = Math.max(1, Math.round(faceW / plankW));
+      const ry = Math.max(1, Math.round(faceH / (plankW * 1.5))); // ảnh 2:1 nên lặp ít hơn chiều dọc
+      tx.repeat.set(rx, ry);
       tx.needsUpdate = true;
     });
     mat.map = tex;
   } else {
-    mat.map = makeWoodTexture(w, diag > 1.4 ? diag / 2.2 : 1);
+    // Canvas fallback — tính repeat theo kích thước thật
+    const tex = makeWoodTexture(w, faceW > 0.5 ? faceW / 0.6 : 1);
+    tex.repeat.set(Math.max(1, Math.round(faceW / 0.4)), Math.max(1, Math.round(faceH / 0.25)));
+    mat.map = tex;
   }
   mesh.material = mat;
   mat.needsUpdate = true;
