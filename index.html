@@ -143,10 +143,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     <button class="tool" id="btnShare" title="Chia sẻ"><span>🔗</span><span class="tip">Sao chép link chia sẻ vân gỗ đang chọn</span></button>
   </div>
 
-  <div id="surfBar" style="position:absolute;top:48px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:15;">
-    <button class="surfBtn" id="surfCabinet" style="background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;backdrop-filter:blur(8px);transition:all .15s;">🗄️ Tủ Bếp</button>
-    <button class="surfBtn" id="surfCountertop" style="background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;backdrop-filter:blur(8px);transition:all .15s;">🔲 Mặt Bếp</button>
-  </div>
+  <button id="surfCabinet" style="position:absolute;top:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;backdrop-filter:blur(8px);z-index:15;transition:all .15s;">🗄️ Chọn Tủ Bếp</button>
 
   <button id="woodOpen"><span class="dot"></span>🪵 Vật liệu gỗ</button>
   <div id="selToast"><span id="selName"></span><button class="x" id="selClose">✕</button></div>
@@ -163,7 +160,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     <button id="hudReset">⌂ Reset</button>
   </div>
 
-  <div id="status">Kéo chuột xoay · cuộn zoom · bấm 🗄️/🔲 để chọn bề mặt thay gỗ</div>
+  <div id="status">Kéo chuột xoay · cuộn zoom · bấm 🗄️ Chọn Tủ Bếp để thay gỗ</div>
 
   <div id="debugOverlay" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.78);color:#0f0;font:11px/1.5 'JetBrains Mono',monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(0,255,0,.25);z-index:30;pointer-events:none;min-width:220px;backdrop-filter:blur(6px);">
     <div id="debugTitle" style="color:#ff0;font-weight:700;margin-bottom:3px;">🔍 DEBUG</div>
@@ -799,30 +796,22 @@ function applySharedWood() {
 
 $('btnShare').addEventListener('click', shareWoodUrl);
 
-// Surface bar — click Tủ Bếp / Mặt Bếp → select mesh + mở wood panel
-const CHANGEABLE_SURFS = ['Tủ bếp dưới', 'Mặt đá bàn bếp'];
+// Surf button — click Tủ Bếp → select mesh + mở wood panel
+const CHANGEABLE_SURFS = ['Tủ bếp dưới'];
 function findMeshBySurf(surfName) {
   return clickables.find(m => m.userData.surf === surfName);
 }
-function onSurfBtnClick(surfName) {
-  const mesh = findMeshBySurf(surfName);
+$('surfCabinet').addEventListener('click', () => {
+  const mesh = findMeshBySurf('Tủ bếp dưới');
   if (!mesh) return;
   selectSurface(mesh);
   $('woodPanel').classList.add('open');
-  const t = $('wpTarget');
-  t.textContent = `Đang chọn: ${surfName}. Chọn vân gỗ bên phải để áp.`;
-  t.style.color = '#fde68a';
-}
-$('surfCabinet').addEventListener('click', () => onSurfBtnClick('Tủ bếp dưới'));
-$('surfCountertop').addEventListener('click', () => onSurfBtnClick('Mặt đá bàn bếp'));
-// Highlight surf bar button when active
+  $('wpTarget').textContent = 'Chọn vân gỗ bên phải để ráp vào tủ.';
+  $('wpTarget').style.color = '#fde68a';
+});
 function updateSurfBar() {
-  document.querySelectorAll('.surfBtn').forEach(b => b.style.borderColor = 'rgba(255,255,255,.15)');
-  if (selected) {
-    const n = selected.userData.surf;
-    if (n === 'Tủ bếp dưới') $('surfCabinet').style.borderColor = '#eab308';
-    if (n === 'Mặt đá bàn bếp') $('surfCountertop').style.borderColor = '#eab308';
-  }
+  const btn = $('surfCabinet');
+  if (btn) btn.style.borderColor = (selected && selected.userData.surf === 'Tủ bếp dưới') ? '#eab308' : 'rgba(255,255,255,.15)';
 }
 
 /* =========================================================
