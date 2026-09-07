@@ -348,22 +348,41 @@ const WOODS = [
   ]},
 ];
 
-// Texture ảnh thật từ kho Thanh Thùy — preload, fallback vẽ canvas cho mã không có ảnh.
-const photoTex = new Map(); // path -> THREE.Texture (RepeatWrapping, sRGB)
+// Texture ảnh thật — LAZY LOAD: chỉ load khi user chọn gỗ
+const photoTex = new Map(); // path -> THREE.Texture (loaded or loading)
 const texLoader = new THREE.TextureLoader();
-function loadPhotoTextures() {
-  WOODS.forEach(g => g.items.forEach(w => {
-    if (!w.tex || photoTex.has(w.tex)) return;
-    const t = texLoader.load(w.tex, tx => {
-      tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
-      tx.colorSpace = THREE.SRGBColorSpace;
-      tx.anisotropy = 16;
-      tx.minFilter = THREE.LinearMipmapLinearFilter;
-      tx.magFilter = THREE.LinearFilter;
-      tx.needsUpdate = true;
-    });
-    photoTex.set(w.tex, t);
-  }));
+texLoader.crossOrigin = 'anonymous';
+function getOrLoadTexture(texPath, callback) {
+  if (!texPath) return null;
+  if (photoTex.has(texPath)) {
+    const t = photoTex.get(texPath);
+    if (callback && t.image && t.image.complete) callback(t);
+    return t;
+  }
+  const t = texLoader.load(texPath, tx => {
+    tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
+    tx.colorSpace = THREE.SRGBColorSpace;
+    tx.anisotropy = 16;
+    tx.minFilter = THREE.LinearMipmapLinearFilter;
+    tx.magFilter = THREE.LinearFilter;
+    tx.needsUpdate = true;
+    if (callback) callback(tx);
+  }, undefined, () => {
+    // On error: remove failed entry so retry is possible
+    photoTex.delete(texPath);
+  });
+  photoTex.set(texPath, t);
+  return t;
+}
+// Preload only visible thumbnails (first 12 visible items) — rest load on hover
+function preloadVisibleThumbnails() {
+  const items = document.querySelectorAll('.wood-item');
+  items.forEach((el, i) => {
+    if (i < 12) {
+      const slug = el.dataset.tex;
+      if (slug) getOrLoadTexture(slug);
+    }
+  });
 }
 
 // Sinh texture vân gỗ (seamless) bằng canvas — lặp theo chiều dài tấm.
@@ -424,6 +443,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
+renderer.info.autoReset = false; // manual reset for perf
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -435,6 +455,10 @@ pmremGenerator.compileEquirectangularShader();
 const envTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environment = envTexture;
 scene.backgroundBlurriness = 0.3;
+// Performance optimizations
+scene.autoUpdate = false; // manual matrix updates
+const pixelRatio = Math.min(devicePixelRatio, 3);
+if (pixelRatio > 2) renderer.setPixelRatio(2); // cap at 2x for perf on high-DPI
 
 const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.05, 500);
 
@@ -482,6 +506,73 @@ scene.add(highlight);
 const $ = id => document.getElementById(id);
 const toastSel = $('selToast'), selName = $('selName');
 
+// Merge static (non-clickable) geometries to reduce draw calls
+function mergeStaticGeometry(root) {
+  const staticMeshes = [];
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    // Skip meshes that are clickable (will be swapped individually)
+    if (o.userData.surf) return;
+    // Skip meshes with unique materials (doors, frames etc)
+    const nm = (o.name || '').toLowerCase();
+    if (/door|frame|handle|glass|window|mirror/.test(nm)) return;
+    staticMeshes.push(o);
+  });
+  // Group by material uuid
+  const groups = {};
+  staticMeshes.forEach(m => {
+    const matId = m.material?.uuid || 'default';
+    if (!groups[matId]) groups[matId] = { material: m.material, meshes: [] };
+    groups[matId].meshes.push(m);
+  });
+  // Merge groups with 3+ meshes (worth the merge cost)
+  let merged = 0;
+  Object.values(groups).forEach(g => {
+    if (g.meshes.length < 3) return;
+    const geo = new THREE.BufferGeometry();
+    const positions = [], normals = [], uvs = [], indices = [];
+    let indexOffset = 0;
+    g.meshes.forEach(m => {
+      if (!m.geometry) return;
+      const pos = m.geometry.getAttribute('position');
+      const nrm = m.geometry.getAttribute('normal');
+      const uv = m.geometry.getAttribute('uv');
+      const idx = m.geometry.getIndex();
+      m.updateMatrixWorld();
+      const mat4 = m.matrixWorld;
+      const normalMat = new THREE.Matrix3().getNormalMatrix(mat4);
+      for (let i = 0; i < pos.count; i++) {
+        const v = new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mat4);
+        positions.push(v.x, v.y, v.z);
+        if (nrm) {
+          const n = new THREE.Vector3().fromBufferAttribute(nrm, i).applyMatrix3(normalMat).normalize();
+          normals.push(n.x, n.y, n.z);
+        }
+        if (uv) uvs.push(uv.getX(i), uv.getY(i));
+      }
+      if (idx) {
+        for (let i = 0; i < idx.count; i++) indices.push(idx.getX(i) + indexOffset);
+      } else {
+        for (let i = 0; i < pos.count; i++) indices.push(i + indexOffset);
+      }
+      indexOffset += pos.count;
+      // Remove original mesh
+      m.parent?.remove(m);
+      m.geometry?.dispose();
+    });
+    if (positions.length === 0) return;
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    if (normals.length) geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    if (uvs.length) geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    const mergedMesh = new THREE.Mesh(geo, g.material);
+    mergedMesh.frustumCulled = false;
+    root.add(mergedMesh);
+    merged += g.meshes.length;
+  });
+  if (merged > 0) console.log(`Merged ${merged} static meshes → fewer draw calls`);
+}
+
 /* =========================================================
    TẢI MODEL
 ========================================================= */
@@ -524,6 +615,8 @@ async function loadModel() {
     const c2 = b2.getCenter(new THREE.Vector3());
     modelRoot.position.sub(new THREE.Vector3(c2.x, b2.min.y, c2.z));
     scene.add(modelRoot);
+    // Merge static non-clickable geometries to reduce draw calls
+    mergeStaticGeometry(modelRoot);
     // Room bounds — giữ camera trong vùng xem được
     roomBox = new THREE.Box3().setFromObject(modelRoot);
     // Mở rộng để camera xoay ngoài phòng nhưng không quá xa
@@ -642,7 +735,13 @@ function buildWoodPanel() {
         };
         img.src = w.tex;
       }
+      if (w.tex) item.dataset.tex = w.tex;
+      // Lazy load texture on hover
+      item.addEventListener('mouseenter', () => {
+        if (w.tex) getOrLoadTexture(w.tex);
+      }, { once: true });
       item.addEventListener('click', () => {
+        if (w.tex) getOrLoadTexture(w.tex); // ensure loaded before apply
         selectWood(key, w);
         document.querySelectorAll('.wood-item').forEach(el => el.classList.remove('selected'));
         item.classList.add('selected');
@@ -715,21 +814,20 @@ function applyWood(mesh) {
     clearcoat, clearcoatRoughness: 0.25,
     sheen, sheenRoughness: 0.4, sheenColor: new THREE.Color(sheenColorHex),
   });
-  if (w.tex && photoTex.has(w.tex)) {
-    const tex = texLoader.load(w.tex, tx => {
-      tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
-      tx.colorSpace = THREE.SRGBColorSpace;
-      tx.anisotropy = 16;
-      tx.minFilter = THREE.LinearMipmapLinearFilter;
-      tx.magFilter = THREE.LinearFilter;
-      // Repeat theo thực tế: ván gỗ ~20cm x 120cm, repeat = bề mặt / ván
-      const plankW = 0.2; // rộng ván
-      const rx = Math.max(1, Math.round(faceW / plankW));
-      const ry = Math.max(1, Math.round(faceH / (plankW * 1.5))); // ảnh 2:1 nên lặp ít hơn chiều dọc
+  if (w.tex) {
+    const plankW = 0.2;
+    const rx = Math.max(1, Math.round(faceW / plankW));
+    const ry = Math.max(1, Math.round(faceH / (plankW * 1.5)));
+    const tex = getOrLoadTexture(w.tex, tx => {
       tx.repeat.set(rx, ry);
       tx.needsUpdate = true;
     });
     mat.map = tex;
+    // Set repeat immediately if texture already loaded
+    if (tex && tex.image && tex.image.complete) {
+      tex.repeat.set(rx, ry);
+      tex.needsUpdate = true;
+    }
   } else {
     // Canvas fallback — tính repeat theo kích thước thật
     const tex = makeWoodTexture(w, faceW > 0.5 ? faceW / 0.6 : 1);
@@ -1002,6 +1100,7 @@ function clampCamera() {
 }
 function loop() {
   try {
+    renderer.info.reset();
     const dt = Math.min(clock.getDelta(), 0.05);
     if (mode === 'walk') updateWalk(dt);
     else if (controls && controls.enabled) {
@@ -1226,7 +1325,7 @@ $('closePanel').addEventListener('click', () => $('woodPanel').classList.remove(
 
 renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
-loadPhotoTextures(); // preload ảnh vân gỗ thật (sớm, song song với model)
+// Lazy load: no bulk preload — textures load on hover/click
 loadModel();
 
 // Model picker — switch model on dropdown change
