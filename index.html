@@ -183,7 +183,8 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     </div>
     <div class="wp-body" id="woodList"></div>
     <div class="wp-actions">
-      <button id="undoOne">↺ Trả về gỗ gốc</button>
+      <button id="btnUndo" title="Hoàn tác (Ctrl+Z)" style="opacity:0.3">↩ Hoàn tác</button>
+      <button id="btnRedo" title="Thực hiện lại (Ctrl+Y)" style="opacity:0.3">↪ Thực hiện lại</button>
       <button id="closePanel">✕ Đóng</button>
     </div>
   </div>
@@ -490,6 +491,9 @@ let selected = null;        // mesh đang chọn
 let activeWood = null;      // mã gỗ đang áp
 let lightLevel = 0;         // 0=sáng nhất, 1=vừa, 2=tối
 const origMats = new Map(); // mesh -> material gốc (để trả lại)
+// Undo/Redo stack
+const undoStack = []; // [{mesh, oldMat, newMat, woodKey}]
+const redoStack = [];
 const woodCache = new Map();// wood index -> {tex, mat}
 const highlight = new THREE.LineSegments();
 const hlGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1));
@@ -845,17 +849,44 @@ function applyWood(mesh) {
     tex.repeat.set(Math.max(1, Math.round(faceW / 0.4)), Math.max(1, Math.round(faceH / 0.25)));
     mat.map = tex;
   }
+  // Push to undo stack before changing material
+  const oldMat = mesh.material;
+  undoStack.push({ mesh, oldMat, newMat: mat, woodKey: activeWood });
+  redoStack.length = 0; // clear redo on new action
   mesh.material = mat;
   mat.needsUpdate = true;
   toastSel.style.display = 'flex';
   selName.textContent = `🪵 ${w.name} (${w.sku}) → ${mesh.userData.surf}: ${shortName(mesh)}`;
+  updateUndoRedoButtons();
 }
 
-function undoSelection() {
-  if (selected && origMats.has(selected)) {
-    selected.material = origMats.get(selected);
-    toastSel.style.display = 'none';
+function undo() {
+  if (!undoStack.length) return;
+  const entry = undoStack.pop();
+  entry.mesh.material = entry.oldMat;
+  redoStack.push(entry);
+  if (selected === entry.mesh) {
+    toastSel.style.display = 'flex';
+    selName.textContent = '↩ Đã hoàn tác: ' + entry.mesh.userData.surf;
   }
+  updateUndoRedoButtons();
+}
+function redo() {
+  if (!redoStack.length) return;
+  const entry = redoStack.pop();
+  entry.mesh.material = entry.newMat;
+  undoStack.push(entry);
+  if (selected === entry.mesh) {
+    toastSel.style.display = 'flex';
+    selName.textContent = '↪ Đã thực hiện lại: ' + entry.mesh.userData.surf;
+  }
+  updateUndoRedoButtons();
+}
+function updateUndoRedoButtons() {
+  const u = document.getElementById("btnUndo");
+  const r = document.getElementById("btnRedo");
+  if (u) u.style.opacity = undoStack.length ? "1" : "0.3";
+  if (r) r.style.opacity = redoStack.length ? "1" : "0.3";
 }
 
 /* =========================================================
@@ -1006,7 +1037,8 @@ function selectSurface(mesh) {
 $('selClose').addEventListener('click', () => {
   selected = null; highlight.visible = false; toastSel.style.display = 'none';
 });
-$('undoOne').addEventListener('click', undoSelection);
+if ($('btnUndo')) $('btnUndo').addEventListener('click', undo);
+if ($('btnRedo')) $('btnRedo').addEventListener('click', redo);
 
 // Picker mode removed — surfaces selected via surfBar or direct click
 
@@ -1391,6 +1423,13 @@ $('modelPicker').addEventListener('change', e => {
 // Set initial picker value from URL
 const initModel = new URLSearchParams(location.search).get('model');
 if (initModel) $('modelPicker').value = initModel;
+
+// Undo/Redo keyboard shortcuts
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
+});
+
 </script>
 </body>
 </html>
