@@ -788,41 +788,30 @@ function applyWood(mesh) {
   const faceH = isFlat ? Math.min(sz.x, sz.z) : Math.min(sz.x, sz.y);
   // Độ bóng gương theo loại bề mặt (giảm clearcoat/sheen cho gỗ để giữ đúng màu)
   let roughness = 0.35, metalness = 0.02, envInt = 0.9;
-  let clearcoat = 0.0, sheen = 0.0, sheenColorHex = 0x000000;
-  if (/đá|counter|mesa|palette|bếp|stone/.test(surf)) {
-    roughness = 0.1; metalness = 0.06; envInt = 1.4;
-    clearcoat = 0.4; // đá bóng gương mạnh
-  } else if (/kim loại|metal|inox/.test(surf)) {
-    roughness = 0.05; metalness = 0.6; envInt = 1.8;
-    clearcoat = 0.5;
-  } else if (/trần|techo|ceiling/.test(surf)) {
-    roughness = 0.55; metalness = 0.0; envInt = 0.4;
-  } else if (/sàn|floor|piso/.test(surf)) {
-    roughness = 0.38; metalness = 0.01; envInt = 0.7;
-    clearcoat = 0.15; // sàn bóng nhẹ
-    sheen = 0.08;
-    sheenColorHex = 0x6b5b3a;
-  } else if (/tủ|kệ|wood|madera/.test(surf)) {
-    roughness = 0.32; metalness = 0.02; envInt = 1.0;
-    clearcoat = 0.2; // gỗ tủ bóng vừa
-    sheen = 0.1;
-    sheenColorHex = 0x8b7355;
+  // Gỗ: dùng MeshStandardMaterial (không clearcoat/sheen) để giữ đúng màu sản phẩm
+  const isWood = /tủ|kệ|wood|madera|sàn|floor/.test(surf);
+  const isMetal = /kim loại|metal|inox/.test(surf);
+  const isStone = /đá|counter|mesa|palette|bếp|stone/.test(surf);
+  if (isStone) { roughness = 0.1; metalness = 0.06; envInt = 1.2; }
+  else if (isMetal) { roughness = 0.05; metalness = 0.5; envInt = 1.5; }
+  else if (/trần|techo|ceiling/.test(surf)) { roughness = 0.55; metalness = 0.0; envInt = 0.3; }
+  else if (/sàn|floor|piso/.test(surf)) { roughness = 0.4; metalness = 0.01; envInt = 0.5; }
+  else if (isWood) { roughness = 0.45; metalness = 0.0; envInt = 0.6; }
+  // Wood/metal: dùng StandardMaterial (giữ đúng màu)
+  // Stone: PhysicalMaterial với clearcoat nhẹ
+  let mat;
+  if (isStone || isMetal) {
+    mat = new THREE.MeshPhysicalMaterial({ roughness, metalness, envMapIntensity: envInt, side: THREE.DoubleSide, clearcoat: isStone ? 0.3 : 0.4, clearcoatRoughness: 0.2 });
+  } else {
+    mat = new THREE.MeshStandardMaterial({ roughness, metalness, envMapIntensity: envInt, side: THREE.DoubleSide });
   }
-  const mat = new THREE.MeshPhysicalMaterial({
-    roughness, metalness,
-    envMapIntensity: envInt,
-    side: THREE.DoubleSide,
-    clearcoat, clearcoatRoughness: 0.25,
-    sheen, sheenRoughness: 0.4, sheenColor: new THREE.Color(sheenColorHex),
-  });
   if (w.tex) {
-    const plankW = 0.2;
-    // Hướng vân: tủ cửa đứng → vân dọc (xoay 90°), sàn/ngang → vân ngang
+    // Repeat nhỏ hơn để vân gỗ trông tự nhiên (không bị lặp patterns)
+    const plankW = 0.35; // ván rộng hơn → repeat ít hơn
     const isVertical = /tủ|kệ|door|cabinet|madera|wood_/.test(surf);
     let rx = Math.max(1, Math.round(faceW / plankW));
-    let ry = Math.max(1, Math.round(faceH / (plankW * 1.5)));
-    if (isVertical && faceH > faceW) { [rx, ry] = [ry, rx]; } // xoay vân dọc
-    // grainRot override: nếu user bấm xoay vân
+    let ry = Math.max(1, Math.round(faceH / (plankW * 2)));
+    if (isVertical && faceH > faceW) { [rx, ry] = [ry, rx]; }
     if (mesh.userData.grainRot) { [rx, ry] = [ry, rx]; }
     const tex = getOrLoadTexture(w.tex, tx => {
       tx.repeat.set(rx, ry);
