@@ -162,6 +162,15 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     <button id="hudSpot">🔦 Chiếu đèn</button>
     <button id="hudLight">☀ Ánh sáng</button>
     <button id="hudReset">⌂ Reset</button>
+    <span class="sep"></span>
+    <button id="hudCompare" style="">🔄 So sánh</button>
+  </div>
+  <div id="compareBar" style="display:none;position:absolute;top:50%;left:0;right:0;height:2px;background:#eab308;z-index:25;cursor:ns-resize;pointer-events:auto;">
+    <div style="position:absolute;left:50%;top:-12px;transform:translateX(-50%);background:#eab308;color:#000;font-size:10px;padding:2px 8px;border-radius:4px;white-space:nowrap;">↕ Kéo để so sánh</div>
+  </div>
+  <div id="compareLabel" style="display:none;position:absolute;bottom:60px;left:12px;z-index:25;pointer-events:none;">
+    <span id="cmpBefore" style="background:rgba(0,0,0,.7);color:#f87171;padding:3px 10px;border-radius:6px;font-size:11px;margin-right:4px;">⬆ Trước</span>
+    <span id="cmpAfter" style="background:rgba(0,0,0,.7);color:#4ade80;padding:3px 10px;border-radius:6px;font-size:11px;">Sau ⬇</span>
   </div>
 
   <div id="status">Kéo chuột xoay · cuộn zoom · bấm 🗄️ Chọn Tủ Bếp để thay gỗ</div>
@@ -1007,7 +1016,30 @@ function loop() {
     } else if (highlight.visible && !selected) highlight.visible = false;
     // Debug overlay update (throttle 10fps)
     if (++debugFrame % 6 === 0) updateDebugOverlay();
-    renderer.render(scene, camera);
+    // Comparison mode: top=before, bottom=after
+    if (compareMode && compareNewMats.size > 0) {
+      const w = container.clientWidth, h = container.clientHeight;
+      const splitY = Math.round(h * compareRatio);
+      renderer.setScissorTest(true);
+      highlight.visible = false; // hide wireframe in comparison
+      // Top half = BEFORE (restore originals)
+      for (const [mesh] of compareNewMats) {
+        if (origMats.has(mesh)) mesh.material = origMats.get(mesh);
+      }
+      renderer.setViewport(0, h - splitY, w, splitY);
+      renderer.setScissor(0, h - splitY, w, splitY);
+      renderer.render(scene, camera);
+      // Bottom half = AFTER (restore new wood materials)
+      for (const [mesh, mat] of compareNewMats) mesh.material = mat;
+      renderer.setViewport(0, 0, w, h - splitY);
+      renderer.setScissor(0, 0, w, h - splitY);
+      renderer.render(scene, camera);
+      renderer.setScissorTest(false);
+      // Restore highlight if selected
+      if (selected && selected.parent) highlight.visible = true;
+    } else {
+      renderer.render(scene, camera);
+    }
   } catch(err) { console.warn('Render loop error:', err); }
 }
 let debugFrame = 0;
@@ -1039,6 +1071,61 @@ document.addEventListener('keydown', e => {
     if (d) d.style.display = d.style.display === 'none' ? 'block' : (d.style.display === '' ? 'none' : '');
   }
 });
+
+// === COMPARISON MODE ===
+let compareMode = false;
+let compareRatio = 0.5; // 0=full before, 1=full after
+const compareNewMats = new Map(); // mesh → new (wood) material
+
+$('hudCompare').addEventListener('click', () => {
+  if (compareMode) {
+    // Exit comparison
+    compareMode = false;
+    $('compareBar').style.display = 'none';
+    $('compareLabel').style.display = 'none';
+    $('hudCompare').classList.remove('active');
+    // Restore current (new) materials
+    for (const [mesh, mat] of compareNewMats) mesh.material = mat;
+  } else {
+    // Enter comparison — need at least one changed surface
+    if (compareNewMats.size === 0) {
+      $('wpTarget').textContent = '⚠️ Chưa thay gỗ nào — chọn gỗ rồi áp lên tủ trước.';
+      $('wpTarget').style.color = '#f87171';
+      return;
+    }
+    compareMode = true;
+    compareRatio = 0.5;
+    $('compareBar').style.display = 'block';
+    $('compareLabel').style.display = 'flex';
+    $('hudCompare').classList.add('active');
+    updateCompareBar();
+  }
+});
+function updateCompareBar() {
+  const bar = $('compareBar');
+  const pct = (compareRatio * 100).toFixed(0);
+  bar.style.top = pct + '%';
+  $('cmpBefore').textContent = '⬆ Trước (' + (100 - compareRatio * 100).toFixed(0) + '%)';
+  $('cmpAfter').textContent = 'Sau (' + pct + '%) ⬇';
+}
+// Drag comparison bar
+let compareDragging = false;
+$('compareBar').addEventListener('pointerdown', e => { compareDragging = true; e.preventDefault(); });
+document.addEventListener('pointermove', e => {
+  if (!compareDragging) return;
+  const rect = container.getBoundingClientRect();
+  compareRatio = Math.max(0.05, Math.min(0.95, (e.clientY - rect.top) / rect.height));
+  updateCompareBar();
+});
+document.addEventListener('pointerup', () => { compareDragging = false; });
+
+// Hook into applyWood: save new material for comparison
+const origApplyWood = applyWood;
+applyWood = function(mesh) {
+  origApplyWood(mesh);
+  // Save the new material after apply
+  compareNewMats.set(mesh, mesh.material);
+};
 
 window.addEventListener('resize', () => {
   camera.aspect = container.clientWidth / container.clientHeight;
