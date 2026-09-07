@@ -129,8 +129,12 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 <body>
 <div class="header">
   <span class="logo">Thanh Thùy <span class="tt">Wood</span></span>
-  <h1>Không Gian 3D — thử vật liệu trong phòng bếp</h1>
-  <span class="sku">Model: Phòng bếp · demo</span>
+  <h1>Không Gian 3D — thử vật liệu gỗ</h1>
+  <select id="modelPicker" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:4px 8px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;">
+    <option value="models/kitchen-draco.glb">🍳 Phòng Bếp L</option>
+    <option value="models/living-room.glb">🛋️ Phòng Khách</option>
+    <option value="models/modern-apartment.glb">🏢 Căn Hộ Hiện Đại</option>
+  </select>
 </div>
 
 <div class="viewer" id="viewer">
@@ -477,9 +481,17 @@ const draco = new DRACOLoader();
 draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 loader.setDRACOLoader(draco);
 
-const MODEL_URL = new URLSearchParams(location.search).get('model') || 'models/kitchen-draco.glb';
+let MODEL_URL = new URLSearchParams(location.search).get('model') || 'models/kitchen-draco.glb';
 
 async function loadModel() {
+  // Clear old model
+  if (modelRoot) { scene.remove(modelRoot); modelRoot = null; }
+  clickables = []; origMats.clear(); selected = null; highlight.visible = false;
+  toastSel.style.display = 'none';
+  // Reset surface bar
+  if ($('surfCabinet')) $('surfCabinet').style.borderColor = 'rgba(255,255,255,.15)';
+  const loadEl = $('loading');
+  if (loadEl) { loadEl.style.display = 'flex'; loadEl.innerHTML = '<div class="spin"></div>Đang tải model 3D…'; }
   try {
     const gltf = await loader.loadAsync(MODEL_URL);
     modelRoot = gltf.scene;
@@ -1136,6 +1148,15 @@ renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
 loadPhotoTextures(); // preload ảnh vân gỗ thật (sớm, song song với model)
 loadModel();
+
+// Model picker — switch model on dropdown change
+$('modelPicker').addEventListener('change', e => {
+  MODEL_URL = e.target.value;
+  loadModel();
+});
+// Set initial picker value from URL
+const initModel = new URLSearchParams(location.search).get('model');
+if (initModel) $('modelPicker').value = initModel;
 </script>
 </body>
 </html>
