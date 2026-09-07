@@ -813,15 +813,16 @@ function applyWood(mesh) {
     let ry = Math.max(1, Math.round(faceH / (plankW * 2)));
     if (isVertical && faceH > faceW) { [rx, ry] = [ry, rx]; }
     if (mesh.userData.grainRot) { [rx, ry] = [ry, rx]; }
-    const tex = getOrLoadTexture(w.tex, tx => {
-      tx.repeat.set(rx, ry);
-      tx.needsUpdate = true;
-    });
-    mat.map = tex;
-    if (tex && tex.image && tex.image.complete) {
+    const srcTex = getOrLoadTexture(w.tex);
+    // Clone texture để mỗi bề mặt có repeat riêng (grain direction)
+    const tex = srcTex ? srcTex.clone() : null;
+    if (tex) {
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
       tex.repeat.set(rx, ry);
       tex.needsUpdate = true;
     }
+    mat.map = tex;
   } else {
     const tex = makeWoodTexture(w, faceW > 0.5 ? faceW / 0.6 : 1);
     tex.repeat.set(Math.max(1, Math.round(faceW / 0.4)), Math.max(1, Math.round(faceH / 0.25)));
@@ -1220,7 +1221,11 @@ $('hudGrain').addEventListener('click', () => {
   }
   selected.userData.grainRot = !selected.userData.grainRot;
   $('hudGrain').classList.toggle('active', selected.userData.grainRot);
-  applyWood(selected); // re-apply với hướng vân mới
+  // Re-apply: cần xóa material cũ để force texture mới
+  const oldMat = selected.material;
+  selected.material = null; // force clean
+  applyWood(selected);
+  if (oldMat && oldMat !== selected.material) oldMat.dispose();
   $('wpTarget').textContent = `↕ Vân ${selected.userData.grainRot ? 'dọc' : 'ngang'} — bấm lại để đổi.`;
   $('wpTarget').style.color = '#fde68a';
 });
