@@ -163,6 +163,11 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 
   <div id="status">Kéo chuột xoay · cuộn zoom · bấm 👆 rồi chọn bề mặt để thay gỗ</div>
 
+  <div id="debugOverlay" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.78);color:#0f0;font:11px/1.5 'JetBrains Mono',monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(0,255,0,.25);z-index:30;pointer-events:none;min-width:220px;backdrop-filter:blur(6px);">
+    <div id="debugTitle" style="color:#ff0;font-weight:700;margin-bottom:3px;">🔍 DEBUG</div>
+    <div id="debugLines"></div>
+  </div>
+
   <div id="woodPanel">
     <div class="wp-head">
       <h3>🪵 <span class="tt">Gỗ Thanh Thùy</span></h3>
@@ -1014,9 +1019,40 @@ function loop() {
       const c = b.getCenter(new THREE.Vector3());
       highlight.position.lerp(c, 0.35);
     } else if (highlight.visible && !selected) highlight.visible = false;
+    // Debug overlay update (throttle 10fps)
+    if (++debugFrame % 6 === 0) updateDebugOverlay();
     renderer.render(scene, camera);
   } catch(err) { console.warn('Render loop error:', err); }
 }
+let debugFrame = 0;
+function updateDebugOverlay() {
+  try {
+    const el = document.getElementById('debugLines');
+    if (!el) return;
+    const p = camera.position;
+    const t = controls ? controls.target : null;
+    const lines = [
+      `<b>Camera:</b> x=${p.x.toFixed(2)} y=${p.y.toFixed(2)} z=${p.z.toFixed(2)}`,
+      `<b>Target:</b> x=${t?t.x.toFixed(2):'-'} y=${t?t.y.toFixed(2):'-'} z=${t?t.z.toFixed(2):'-'}`,
+      `<b>Mode:</b> ${mode} | <b>Picking:</b> ${picking}`,
+      `<b>Controls:</b> ${controls?'enabled='+controls.enabled:'none'}`,
+      `<b>Walk:</b> keys=${JSON.stringify(walk.keys)} yaw=${walk.yaw.toFixed(2)}`,
+      `<b>Room:</b> ${roomBox?'min('+roomBox.min.x.toFixed(1)+','+roomBox.min.z.toFixed(1)+') max('+roomBox.max.x.toFixed(1)+','+roomBox.max.z.toFixed(1)+')':'unset'}`,
+      `<b>Meshes:</b> ${clickables.length} clickable | ${modelRoot?modelRoot.children.length:0} nodes`,
+      `<b>Renderer:</b> ${renderer.info.render.triangles} tri | ${renderer.info.render.calls} draw | ${Math.round(renderer.info.memory.geometries)} geo | ${Math.round(renderer.info.memory.textures)} tex`,
+      `<b>Scene:</b> ${scene.environment?'env✓':'env✗'} ${scene.fog?'fog✓':'fog✗'} ratio=${renderer.getPixelRatio()}x`
+    ];
+    el.innerHTML = lines.join('<br>');
+  } catch(e) {}
+}
+
+// Toggle debug overlay với phím ` (backtick)
+document.addEventListener('keydown', e => {
+  if (e.key === '`' || e.key === '\u0060') {
+    const d = document.getElementById('debugOverlay');
+    if (d) d.style.display = d.style.display === 'none' ? 'block' : (d.style.display === '' ? 'none' : '');
+  }
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = container.clientWidth / container.clientHeight;
