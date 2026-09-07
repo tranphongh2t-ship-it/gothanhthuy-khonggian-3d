@@ -348,7 +348,9 @@ function loadPhotoTextures() {
     const t = texLoader.load(w.tex, tx => {
       tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
       tx.colorSpace = THREE.SRGBColorSpace;
-      tx.anisotropy = 4;
+      tx.anisotropy = 16;
+      tx.minFilter = THREE.LinearMipmapLinearFilter;
+      tx.magFilter = THREE.LinearFilter;
       tx.needsUpdate = true;
     });
     photoTex.set(w.tex, t);
@@ -357,7 +359,7 @@ function loadPhotoTextures() {
 
 // Sinh texture vân gỗ (seamless) bằng canvas — lặp theo chiều dài tấm.
 function makeWoodTexture(w, tileLen = 1) {
-  const S = 512;
+  const S = 1024;
   const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
   const ctx = cv.getContext('2d');
   // nền dọc
@@ -396,7 +398,8 @@ function makeWoodTexture(w, tileLen = 1) {
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.repeat.set(1, Math.max(1, Math.round(tileLen * 2))); // vân co theo chiều dài bề mặt
-  tex.anisotropy = 4;
+  tex.anisotropy = 16;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
   return tex;
 }
 
@@ -405,11 +408,13 @@ function makeWoodTexture(w, tileLen = 1) {
 ========================================================= */
 const container = document.getElementById('viewer');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 3));
 renderer.setSize(container.clientWidth, container.clientHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -417,15 +422,15 @@ scene.fog = new THREE.Fog(0x0a0a0a, 40, 90);
 
 const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.05, 500);
 
-const SUN = new THREE.DirectionalLight(0xfff3e0, 2.2);
+const SUN = new THREE.DirectionalLight(0xfff3e0, 2.8);
 SUN.position.set(6, 9, 4);
 SUN.castShadow = true;
-SUN.shadow.mapSize.set(2048, 2048);
+SUN.shadow.mapSize.set(4096, 4096);
 scene.add(SUN);
-const FILL = new THREE.DirectionalLight(0xbfd9ff, 0.55);
+const FILL = new THREE.DirectionalLight(0xbfd9ff, 0.8);
 FILL.position.set(-5, 3, -6);
 scene.add(FILL);
-const AMB = new THREE.AmbientLight(0xffffff, 0.3);
+const AMB = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(AMB);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -703,8 +708,13 @@ function applyWood(mesh) {
     const tex = texLoader.load(w.tex, tx => {
       tx.wrapS = tx.wrapT = THREE.RepeatWrapping;
       tx.colorSpace = THREE.SRGBColorSpace;
-      tx.anisotropy = 8;
-      tx.repeat.set(2, 2);
+      tx.anisotropy = 16;
+      tx.minFilter = THREE.LinearMipmapLinearFilter;
+      tx.magFilter = THREE.LinearFilter;
+      // Repeat theo kích thước bề mặt (tấm ván ~20cm lặp)
+      const plankUnit = 0.2;
+      const rx = Math.max(1, Math.round(diag / plankUnit));
+      tx.repeat.set(rx, Math.max(1, Math.round(diag / plankUnit * 0.5)));
       tx.needsUpdate = true;
     });
     mat.map = tex;
@@ -1024,7 +1034,7 @@ const LIGHT_PRESETS = [
   { sun: 1.5, fill: 0.35, amb: 0.25, hemi: 0.2, label: '🌤 Sáng vừa' },
   { sun: 0.3, fill: 0.1,  amb: 0.08, hemi: 0.05, label: '🌙 Tối' },
 ];
-const HEMI = new THREE.HemisphereLight(0xfff8e8, 0x8090a0, 0.4);
+const HEMI = new THREE.HemisphereLight(0xfff8e8, 0x8090a0, 0.6);
 scene.add(HEMI);
 function applyLightLevel() {
   const p = LIGHT_PRESETS[lightLevel];
