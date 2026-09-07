@@ -611,6 +611,21 @@ async function loadModel() {
     const c2 = b2.getCenter(new THREE.Vector3());
     modelRoot.position.sub(new THREE.Vector3(c2.x, b2.min.y, c2.z));
     scene.add(modelRoot);
+    // --- Clickables: PHÁT HIỆN TRƯỚC khi mergeStaticGeometry ---
+    clickables = [];
+    modelRoot.traverse(o => {
+      if (!o.isMesh) return;
+      const nm = (o.name || '').toLowerCase();
+      const b = new THREE.Box3().setFromObject(o);
+      const diag = b.getSize(new THREE.Vector3()).length();
+      // Bỏ mesh quá lớn (skybox, backdrop) hoặc quá nhỏ (2mm)
+      if (diag > ref * 0.85) return;
+      if (diag < 0.002) return;
+      // Skip known background names
+      if (/ground|floor_none|backdrop|sky|env|hdri|light/i.test(nm) && diag > ref * 0.5) return;
+      clickables.push(o);
+    });
+    console.log('[MODEL] ' + clickables.length + ' clickables found (ref=' + ref.toFixed(2) + ')');
     // Merge static non-clickable geometries to reduce draw calls
     mergeStaticGeometry(modelRoot);
     // Room bounds — giữ camera trong vùng xem được
@@ -620,16 +635,6 @@ async function loadModel() {
     roomBox.min.z -= 1.8; roomBox.max.z += 1.8;
     roomBox.min.y = -0.3; roomBox.max.y = 3.5;
     controls.target.set(0, 1.4, 0);
-    // --- Clickables: mọi mesh trừ background/trần nền ---
-    clickables = [];
-    modelRoot.traverse(o => {
-      if (!o.isMesh) return;
-      const nm = (o.name || '').toLowerCase();
-      const b = new THREE.Box3().setFromObject(o);
-      const diag = b.getSize(new THREE.Vector3()).length();
-      const skipBg = /ground|floor_none|backdrop|sky|env|hdri|light/i.test(nm) && diag > ref * 0.5;
-      if (!skipBg && diag < ref * 0.6) clickables.push(o);
-    });
     // Phân nhóm bề mặt theo tên material để thông báo thân thiện
     clickables.forEach(m => {
       const mn = (m.material?.name || m.name || '');
@@ -651,6 +656,7 @@ function classifySurf(matName, mesh) {
   const s = raw.toLowerCase();
   const b = new THREE.Box3().setFromObject(mesh);
   const n = b.getSize(new THREE.Vector3());
+  const diag = n.length();
   const isFloor = n.y < Math.min(n.x, n.z) * 0.25 && n.y < 0.35 && b.min.y < 0.15;
   // === Tên nội thất tiếng Việt ===
   if (isFloor || /floor|piso|suelo|ground/.test(s)) return 'Sàn nhà';
@@ -666,6 +672,17 @@ function classifySurf(matName, mesh) {
   if (/acero|inox|carcosa/.test(s)) return 'Inox tủ lạnh';
   if (/leaf|cây|planta/.test(s)) return 'Cây xanh';
   if (/b113|standardmaterial/.test(s)) return 'Bề mặt phụ';
+  // === Geometry-based fallback cho Draco/compressed meshes ===
+  // Trần nhà: phẳng, rộng, ở trên cao
+  if (n.y < 0.15 && n.x * n.z > 1 && b.min.y > 1.8) return 'Trần nhà';
+  // Tủ gỗ đứng: cao > 0.5, rộng vừa, cao 0.5-2.5m
+  if (n.y > 0.5 && n.y < 2.5 && diag < 4 && b.min.y < 0.15) return 'Tủ gỗ';
+  // Mặt bàn/đá: phẳng, rộng, ở độ cao 0.7-1.2m
+  if (n.y < 0.2 && n.x * n.z > 0.15 && b.min.y > 0.6 && b.min.y < 1.3) return 'Mặt bàn';
+  // Sàn nhà nhỏ: phẳng, rộng, ở dưới
+  if (isFloor) return 'Sàn nhà';
+  // Kệ/tủ nhỏ: thấp, rộng vừa
+  if (n.y < 0.6 && diag < 2 && b.min.y < 0.15) return 'Kệ/tủ thấp';
   return 'Bề mặt';
 }
 
@@ -784,7 +801,7 @@ function applyWood(mesh) {
   // Độ bóng gương theo loại bề mặt (giảm clearcoat/sheen cho gỗ để giữ đúng màu)
   let roughness = 0.35, metalness = 0.02, envInt = 0.9;
   // Gỗ: dùng MeshStandardMaterial (không clearcoat/sheen) để giữ đúng màu sản phẩm
-  const isWood = /tủ|kệ|wood|madera|sàn|floor/.test(surf);
+  const isWood = /tủ|kệ|wood|madera|sàn|floor|mặt bàn/.test(surf);
   const isMetal = /kim loại|metal|inox/.test(surf);
   const isStone = /đá|counter|mesa|palette|bếp|stone/.test(surf);
   if (isStone) { roughness = 0.1; metalness = 0.06; envInt = 1.2; }
@@ -805,7 +822,7 @@ function applyWood(mesh) {
     const rx = Math.max(1, Math.round(faceW / plankW));
     const ry = Math.max(1, Math.round(faceH / (plankW * 2)));
     // Hướng vân: ảnh gốc = vân ngang. Tủ cần vân dọc → xoay 90°
-    const isVertical = /tủ|kệ|door|cabinet|madera|wood_/.test(surf);
+    const isVertical = /tủ|kệ|door|cabinet|madera|wood_|khung/.test(surf);
     // Tủ luôn vân dọc, sàn/ngang vân ngang, user override bằng grainRot
     const needRotate = isVertical !== !!mesh.userData.grainRot;
     const srcTex = getOrLoadTexture(w.tex);
@@ -903,9 +920,9 @@ function applySharedWood() {
 if ($('btnShare')) $('btnShare').addEventListener('click', shareWoodUrl);
 
 // Surf bar — dynamic surface selector for all changeable surfaces
-const CHANGEABLE_SURFS = ['Tủ bếp dưới', 'Tủ bếp trên / Gỗ ốp', 'Sàn nhà', 'Trần nhà', 'Khung tủ', 'Mặt đá bàn bếp'];
-const SURF_ICONS = { 'Tủ bếp dưới': '🗄️', 'Tủ bếp trên / Gỗ ốp': '📦', 'Sàn nhà': '🟫', 'Trần nhà': '⬜', 'Khung tủ': '🚪', 'Mặt đá bàn bếp': '🔲' };
-const SURF_LABELS = { 'Tủ bếp dưới': 'Tủ Bếp Dưới', 'Tủ bếp trên / Gỗ ốp': 'Tủ Bếp Trên', 'Sàn nhà': 'Sàn Nhà', 'Trần nhà': 'Trần Nhà', 'Khung tủ': 'Khung Tủ', 'Mặt đá bàn bếp': 'Mặt Đá Bếp' };
+const CHANGEABLE_SURFS = ['Tủ bếp dưới', 'Tủ bếp trên / Gỗ ốp', 'Sàn nhà', 'Trần nhà', 'Khung tủ', 'Mặt đá bàn bếp', 'Tủ gỗ', 'Mặt bàn', 'Kệ/tủ thấp'];
+const SURF_ICONS = { 'Tủ bếp dưới': '🗄️', 'Tủ bếp trên / Gỗ ốp': '📦', 'Sàn nhà': '🟫', 'Trần nhà': '⬜', 'Khung tủ': '🚪', 'Mặt đá bàn bếp': '🔲', 'Tủ gỗ': '🪵', 'Mặt bàn': '🔲', 'Kệ/tủ thấp': '📐' };
+const SURF_LABELS = { 'Tủ bếp dưới': 'Tủ Bếp Dưới', 'Tủ bếp trên / Gỗ ốp': 'Tủ Bếp Trên', 'Sàn nhà': 'Sàn Nhà', 'Trần nhà': 'Trần Nhà', 'Khung tủ': 'Khung Tủ', 'Mặt đá bàn bếp': 'Mặt Đá Bếp', 'Tủ gỗ': 'Tủ Gỗ', 'Mặt bàn': 'Mặt Bàn', 'Kệ/tủ thấp': 'Kệ/Tủ' };
 
 function findMeshBySurf(surfName) {
   return clickables.find(m => m.userData.surf === surfName);
