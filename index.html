@@ -142,7 +142,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 
   <!-- old tools removed — using .hud bar instead -->
 
-  <button id="surfCabinet" style="position:absolute;top:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;backdrop-filter:blur(8px);z-index:15;transition:all .15s;">🗄️ Chọn Tủ Bếp</button>
+  <div id="surfCabinet"></div>
 
   <!-- woodOpen removed — using surfCabinet instead -->
   <div id="selToast"><span id="selName"></span><button class="x" id="selClose">✕</button></div>
@@ -169,7 +169,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     <span id="cmpAfter" style="background:rgba(0,0,0,.7);color:#4ade80;padding:3px 10px;border-radius:6px;font-size:11px;">Sau ⬇</span>
   </div>
 
-  <div id="status">Kéo chuột xoay · cuộn zoom · bấm 🗄️ Chọn Tủ Bếp để thay gỗ</div>
+  <div id="status">Kéo chuột xoay · cuộn zoom · bấm bề mặt trên để thay gỗ</div>
 
   <div id="debugOverlay" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.78);color:#0f0;font:11px/1.5 'JetBrains Mono',monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(0,255,0,.25);z-index:30;pointer-events:none;min-width:220px;backdrop-filter:blur(6px);">
     <div id="debugTitle" style="color:#ff0;font-weight:700;margin-bottom:3px;">🔍 DEBUG</div>
@@ -638,7 +638,7 @@ async function loadModel() {
     $('loading').style.display = 'none';
     initCamera();
     buildWoodPanel();
-    // Surface bar replaces old buildSurfaceMenu
+    buildSurfBar(); // dynamic surface selector
     renderer.setAnimationLoop(loop);
     applySharedWood(); // ?wood=lp-387 → tự áp vân đó lên bề mặt chính
   } catch (e) {
@@ -902,22 +902,49 @@ function applySharedWood() {
 
 if ($('btnShare')) $('btnShare').addEventListener('click', shareWoodUrl);
 
-// Surf button — click Tủ Bếp → select mesh + mở wood panel
-const CHANGEABLE_SURFS = ['Tủ bếp dưới'];
+// Surf bar — dynamic surface selector for all changeable surfaces
+const CHANGEABLE_SURFS = ['Tủ bếp dưới', 'Tủ bếp trên / Gỗ ốp', 'Sàn nhà', 'Trần nhà', 'Khung tủ', 'Mặt đá bàn bếp'];
+const SURF_ICONS = { 'Tủ bếp dưới': '🗄️', 'Tủ bếp trên / Gỗ ốp': '📦', 'Sàn nhà': '🟫', 'Trần nhà': '⬜', 'Khung tủ': '🚪', 'Mặt đá bàn bếp': '🔲' };
+const SURF_LABELS = { 'Tủ bếp dưới': 'Tủ Bếp Dưới', 'Tủ bếp trên / Gỗ ốp': 'Tủ Bếp Trên', 'Sàn nhà': 'Sàn Nhà', 'Trần nhà': 'Trần Nhà', 'Khung tủ': 'Khung Tủ', 'Mặt đá bàn bếp': 'Mặt Đá Bếp' };
+
 function findMeshBySurf(surfName) {
   return clickables.find(m => m.userData.surf === surfName);
 }
-$('surfCabinet').addEventListener('click', () => {
-  const mesh = findMeshBySurf('Tủ bếp dưới');
-  if (!mesh) return;
-  selectSurface(mesh);
-  $('woodPanel').classList.add('open');
-  $('wpTarget').textContent = 'Chọn vân gỗ bên phải để ráp vào tủ.';
-  $('wpTarget').style.color = '#fde68a';
-});
+function buildSurfBar() {
+  const bar = $('surfCabinet');
+  if (!bar) return;
+  bar.innerHTML = '';
+  bar.style.cssText = 'position:absolute;top:48px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.15);padding:4px 8px;border-radius:10px;z-index:15;backdrop-filter:blur(8px);';
+  CHANGEABLE_SURFS.forEach(surf => {
+    if (!findMeshBySurf(surf)) return; // skip if surface not in model
+    const btn = document.createElement('button');
+    btn.className = 'surf-bar-btn';
+    btn.dataset.surf = surf;
+    btn.textContent = (SURF_ICONS[surf] || '🔹') + ' ' + (SURF_LABELS[surf] || surf);
+    btn.style.cssText = 'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#ddd;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-family:inherit;transition:all .15s;white-space:nowrap;';
+    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(255,255,255,.18)'; btn.style.color = '#fff'; });
+    btn.addEventListener('mouseleave', () => { if (!selected || selected.userData.surf !== surf) { btn.style.background = 'rgba(255,255,255,.08)'; btn.style.color = '#ddd'; } });
+    btn.addEventListener('click', () => {
+      const mesh = findMeshBySurf(surf);
+      if (!mesh) return;
+      selectSurface(mesh);
+      $('woodPanel').classList.add('open');
+      $('wpTarget').textContent = `Chọn vân gỗ bên phải để ráp vào ${(SURF_LABELS[surf] || surf)}.`;
+      $('wpTarget').style.color = '#fde68a';
+      updateSurfBar();
+    });
+    bar.appendChild(btn);
+  });
+}
+
 function updateSurfBar() {
-  const btn = $('surfCabinet');
-  if (btn) btn.style.borderColor = (selected && selected.userData.surf === 'Tủ bếp dưới') ? '#eab308' : 'rgba(255,255,255,.15)';
+  document.querySelectorAll('.surf-bar-btn').forEach(btn => {
+    const surf = btn.dataset.surf;
+    const isActive = selected && selected.userData.surf === surf;
+    btn.style.borderColor = isActive ? '#eab308' : 'rgba(255,255,255,.15)';
+    btn.style.background = isActive ? 'rgba(234,179,8,.25)' : 'rgba(255,255,255,.08)';
+    btn.style.color = isActive ? '#fde68a' : '#ddd';
+  });
 }
 
 /* =========================================================
