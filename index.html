@@ -806,20 +806,21 @@ function applyWood(mesh) {
     mat = new THREE.MeshStandardMaterial({ roughness, metalness, envMapIntensity: envInt, side: THREE.DoubleSide });
   }
   if (w.tex) {
-    // Repeat nhỏ hơn để vân gỗ trông tự nhiên (không bị lặp patterns)
-    const plankW = 0.35; // ván rộng hơn → repeat ít hơn
+    const plankW = 0.35;
+    const rx = Math.max(1, Math.round(faceW / plankW));
+    const ry = Math.max(1, Math.round(faceH / (plankW * 2)));
+    // Hướng vân: ảnh gốc = vân ngang. Tủ đứng cần vân dọc → xoay texture 90°
     const isVertical = /tủ|kệ|door|cabinet|madera|wood_/.test(surf);
-    let rx = Math.max(1, Math.round(faceW / plankW));
-    let ry = Math.max(1, Math.round(faceH / (plankW * 2)));
-    if (isVertical && faceH > faceW) { [rx, ry] = [ry, rx]; }
-    if (mesh.userData.grainRot) { [rx, ry] = [ry, rx]; }
+    const needRotate = (isVertical && faceH > faceW) !== !!mesh.userData.grainRot;
     const srcTex = getOrLoadTexture(w.tex);
-    // Clone texture để mỗi bề mặt có repeat riêng (grain direction)
     const tex = srcTex ? srcTex.clone() : null;
     if (tex) {
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.repeat.set(rx, ry);
+      // XOAY texture 90° quanh tâm → vân chạy dọc
+      tex.center.set(0.5, 0.5);
+      tex.rotation = needRotate ? Math.PI / 2 : 0;
       tex.needsUpdate = true;
     }
     mat.map = tex;
@@ -1221,11 +1222,10 @@ $('hudGrain').addEventListener('click', () => {
   }
   selected.userData.grainRot = !selected.userData.grainRot;
   $('hudGrain').classList.toggle('active', selected.userData.grainRot);
-  // Re-apply: cần xóa material cũ để force texture mới
   const oldMat = selected.material;
-  selected.material = null; // force clean
+  selected.material = null;
   applyWood(selected);
-  if (oldMat && oldMat !== selected.material) oldMat.dispose();
+  if (oldMat && oldMat !== selected.material) { oldMat.map?.dispose(); oldMat.dispose(); }
   $('wpTarget').textContent = `↕ Vân ${selected.userData.grainRot ? 'dọc' : 'ngang'} — bấm lại để đổi.`;
   $('wpTarget').style.color = '#fde68a';
 });
