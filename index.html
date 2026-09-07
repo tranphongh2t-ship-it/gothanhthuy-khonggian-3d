@@ -57,6 +57,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 .hud button:hover { background: rgba(255,255,255,.16); }
 .hud button.active { background: rgba(234,179,8,.25); border-color: #eab308; color: #fde68a; }
 .hud button.zoom { font-size: 16px; font-weight: 700; min-width: 32px; padding: 6px 8px; }
+.surfBtn:hover { background: rgba(234,179,8,.25) !important; border-color: #eab308 !important; }
 .hud .sep { width: 1px; background: rgba(255,255,255,.12); margin: 2px 3px; }
 
 /* === WOOD PANEL (right drawer) === */
@@ -94,8 +95,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 #walkHint kbd { background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 4px; padding: 1px 5px; font-family: inherit; font-size: 10.5px; color: #eee; }
 
 /* === SURFACE PANEL (right drawer) === */
-#surfPanel { position: absolute; right: 0; top: 0; bottom: 0; width: 260px; background: rgba(14,14,14,.97); border-left: 1px solid #242424; backdrop-filter: blur(14px); transform: translateX(100%); transition: transform .25s ease; z-index: 21; display: flex; flex-direction: column; }
-#surfPanel.open { transform: translateX(0); box-shadow: -20px 0 40px rgba(0,0,0,.45); }
+
 .sp-head { padding: 14px 14px 8px; }
 .sp-head h3 { font-family: 'Arsenal', sans-serif; font-size: 15px; color: #fff; display: flex; align-items: center; gap: 7px; }
 .sp-head h3 .tt { color: #eab308; }
@@ -119,7 +119,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 @media (max-width: 640px) {
   .header h1 { font-size: 12px; }
   .header .sku { display: none; }
-  #woodPanel, #surfPanel { width: 88vw; }
+  #woodPanel { width: 88vw; }
   #woodOpen { padding: 7px 10px; font-size: 11.5px; }
   .hud button { padding: 6px 8px; font-size: 11px; }
   .tool { width: 38px; height: 38px; font-size: 16px; }
@@ -137,13 +137,15 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
   <div id="loading"><div class="spin"></div>Đang tải không gian 3D…</div>
 
   <div class="tools">
-    <button class="tool" id="btnPick" title="Chọn bề mặt"><span>👆</span><span class="tip">Chọn bề mặt — bấm vào sàn/tường/tủ</span></button>
-    <button class="tool" id="btnWood" title="Vật liệu"><span>🪵</span><span class="tip">Bảng vật liệu gỗ Thanh Thùy</span></button>
     <button class="tool active" id="btnOrbit" title="Xoay xung quanh"><span>🔄</span><span class="tip">Xoay quanh không gian</span></button>
     <button class="tool" id="btnWalk" title="Đi bộ"><span>🚶</span><span class="tip">Đi bộ trong phòng (WASD)</span></button>
     <button class="tool" id="btnReset" title="Đặt lại camera"><span>⌂</span><span class="tip">Đặt lại góc nhìn</span></button>
     <button class="tool" id="btnShare" title="Chia sẻ"><span>🔗</span><span class="tip">Sao chép link chia sẻ vân gỗ đang chọn</span></button>
-    <button class="tool" id="btnSurf" title="Danh sách bề mặt"><span>📋</span><span class="tip">Bề mặt có thể thay gỗ</span></button>
+  </div>
+
+  <div id="surfBar" style="position:absolute;top:48px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:15;">
+    <button class="surfBtn" id="surfCabinet" style="background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;backdrop-filter:blur(8px);transition:all .15s;">🗄️ Tủ Bếp</button>
+    <button class="surfBtn" id="surfCountertop" style="background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;backdrop-filter:blur(8px);transition:all .15s;">🔲 Mặt Bếp</button>
   </div>
 
   <button id="woodOpen"><span class="dot"></span>🪵 Vật liệu gỗ</button>
@@ -161,7 +163,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     <button id="hudReset">⌂ Reset</button>
   </div>
 
-  <div id="status">Kéo chuột xoay · cuộn zoom · bấm 👆 rồi chọn bề mặt để thay gỗ</div>
+  <div id="status">Kéo chuột xoay · cuộn zoom · bấm 🗄️/🔲 để chọn bề mặt thay gỗ</div>
 
   <div id="debugOverlay" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.78);color:#0f0;font:11px/1.5 'JetBrains Mono',monospace;padding:8px 12px;border-radius:8px;border:1px solid rgba(0,255,0,.25);z-index:30;pointer-events:none;min-width:220px;backdrop-filter:blur(6px);">
     <div id="debugTitle" style="color:#ff0;font-weight:700;margin-bottom:3px;">🔍 DEBUG</div>
@@ -180,16 +182,7 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
     </div>
   </div>
 
-  <div id="surfPanel">
-    <div class="sp-head">
-      <h3>📋 <span class="tt">Bề mặt trong phòng</span></h3>
-      <p>Bấm vào bề mặt bên dưới để chọn → sau đó mở 🪵 chọn vân gỗ để thay.</p>
-    </div>
-    <div class="sp-body" id="surfList"></div>
-    <div class="sp-actions">
-      <button id="surfClose">✕ Đóng</button>
-    </div>
-  </div>
+
 </div>
 
 <script type="importmap">
@@ -462,7 +455,7 @@ let contentBox = null;      // bbox nội dung (loại mesh nền khổng lồ)
 let roomBox = null;         // bbox phòng thật (để camera không ra ngoài)
 let clickables = [];        // mesh có thể chọn để đổi vật liệu
 let mode = 'orbit';         // 'orbit' | 'walk' | 'pick'
-let picking = false;        // bật chế độ chọn bề mặt
+// picking mode removed — surfaces selected via surfBar or direct click on changeable surfaces
 let selected = null;        // mesh đang chọn
 let activeWood = null;      // mã gỗ đang áp
 let lightLevel = 0;         // 0=sáng nhất, 1=vừa, 2=tối
@@ -538,7 +531,7 @@ async function loadModel() {
     $('loading').style.display = 'none';
     initCamera();
     buildWoodPanel();
-    buildSurfaceMenu();
+    // Surface bar replaces old buildSurfaceMenu
     renderer.setAnimationLoop(loop);
     applySharedWood(); // ?wood=lp-387 → tự áp vân đó lên bề mặt chính
   } catch (e) {
@@ -653,55 +646,14 @@ function selectWood(key, w) {
     t.textContent = `🪵 ${w.name} (${w.sku}) — đã áp lên "${selected.userData.surf}: ${shortName(selected)}". Bấm bề mặt khác hoặc chọn vân khác.`;
     t.style.color = '#fde68a';
   } else {
-    t.textContent = `Đã chọn ${w.name} (${w.sku}). Giờ bấm 👆 ở góc trái rồi chọn bề mặt trong phòng để áp gỗ.`;
+    t.textContent = `${w.name} (${w.sku}). Bấm 🗄️ Tủ Bếp hoặc 🔲 Mặt Bếp trên để chọn bề mặt.`;
     t.style.color = '#fde68a';
   }
-  // mở chế độ chọn nếu chưa bật
-  if (!picking) togglePick(true);
 }
 
 function shortName(mesh) {
   const s = (mesh.material?.name || mesh.name || '');
   return s.length > 26 ? s.slice(0, 26) + '…' : s;
-}
-
-/* =========================================================
-   SURFACE MENU — danh sách bề mặt có thể thay gỗ
-========================================================= */
-function buildSurfaceMenu() {
-  const panel = $('surfPanel');
-  const list = $('surfList');
-  if (!panel || !list) return;
-  list.innerHTML = '';
-  // Group by surf type
-  const groups = {};
-  clickables.forEach(m => {
-    const t = m.userData.surf || 'Khác';
-    if (!groups[t]) groups[t] = [];
-    groups[t].push(m);
-  });
-  const order = ['Tủ bếp dưới', 'Tủ bếp trên / Gỗ ốp', 'Mặt đá bàn bếp', 'Sàn nhà', 'Tường', 'Trần nhà', 'Khung tủ', 'Bảng điều khiển lò', 'Inox tủ lạnh', 'Tấm kim loại', 'Cây xanh', 'Đồng hồ', 'Bề mặt phụ', 'Bề mặt'];
-  order.forEach(type => {
-    const items = groups[type];
-    if (!items || !items.length) return;
-    const gh = document.createElement('div'); gh.className = 'surf-group';
-    const icon = { 'Sàn nhà': '🟫', 'Tủ bếp dưới': '🚪', 'Tủ bếp trên / Gỗ ốp': '🗄️', 'Mặt đá bàn bếp': '🔲', 'Tường': '🧱', 'Trần nhà': '⬜', 'Khung tủ': '🪟', 'Bảng điều khiển lò': '🎛️', 'Đồng hồ': '🕐', 'Tấm kim loại': '⚙️', 'Inox tủ lạnh': '🧊', 'Cây xanh': '🌿', 'Bề mặt phụ': '📐' }[type] || '📐';
-    gh.innerHTML = `<span class="surf-icon">${icon}</span> <span class="surf-type">${type}</span> <span class="surf-count">${items.length}</span>`;
-    list.appendChild(gh);
-    items.forEach(m => {
-      const btn = document.createElement('button');
-      btn.className = 'surf-item';
-      const nm = shortName(m);
-      const hasWood = origMats.has(m);
-      btn.innerHTML = `<span class="surf-dot ${hasWood ? 'changed' : ''}"></span><span class="surf-name">${nm}</span>`;
-      btn.addEventListener('click', () => {
-        selectSurface(m);
-        if (!picking) togglePick(true);
-        $('surfPanel').classList.remove('open');
-      });
-      list.appendChild(btn);
-    });
-  });
 }
 
 function applyWood(mesh) {
@@ -847,12 +799,31 @@ function applySharedWood() {
 
 $('btnShare').addEventListener('click', shareWoodUrl);
 
-// Surface list panel
-$('btnSurf').addEventListener('click', () => {
-  buildSurfaceMenu(); // refresh
-  $('surfPanel').classList.toggle('open');
-});
-$('surfClose').addEventListener('click', () => $('surfPanel').classList.remove('open'));
+// Surface bar — click Tủ Bếp / Mặt Bếp → select mesh + mở wood panel
+const CHANGEABLE_SURFS = ['Tủ bếp dưới', 'Mặt đá bàn bếp'];
+function findMeshBySurf(surfName) {
+  return clickables.find(m => m.userData.surf === surfName);
+}
+function onSurfBtnClick(surfName) {
+  const mesh = findMeshBySurf(surfName);
+  if (!mesh) return;
+  selectSurface(mesh);
+  $('woodPanel').classList.add('open');
+  const t = $('wpTarget');
+  t.textContent = `Đang chọn: ${surfName}. Chọn vân gỗ bên phải để áp.`;
+  t.style.color = '#fde68a';
+}
+$('surfCabinet').addEventListener('click', () => onSurfBtnClick('Tủ bếp dưới'));
+$('surfCountertop').addEventListener('click', () => onSurfBtnClick('Mặt đá bàn bếp'));
+// Highlight surf bar button when active
+function updateSurfBar() {
+  document.querySelectorAll('.surfBtn').forEach(b => b.style.borderColor = 'rgba(255,255,255,.15)');
+  if (selected) {
+    const n = selected.userData.surf;
+    if (n === 'Tủ bếp dưới') $('surfCabinet').style.borderColor = '#eab308';
+    if (n === 'Mặt đá bàn bếp') $('surfCountertop').style.borderColor = '#eab308';
+  }
+}
 
 /* =========================================================
    CHỌN BỀ MẶT (raycast)
@@ -864,12 +835,18 @@ function onPointerDown(e) {
   try {
     if (e.button !== 0) return;
     if (mode === 'walk') { walkMouseDown(e); return; }
-    if (!picking) return;
     const r = renderer.domElement.getBoundingClientRect();
     pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects(clickables, false);
-    if (hits.length) selectSurface(hits[0].object);
+    if (hits.length) {
+      const mesh = hits[0].object;
+      // Only allow changeable surfaces
+      if (CHANGEABLE_SURFS.includes(mesh.userData.surf)) {
+        selectSurface(mesh);
+        $('woodPanel').classList.add('open');
+      }
+    }
   } catch(err) { console.warn('onPointerDown error:', err); }
 }
 function selectSurface(mesh) {
@@ -882,8 +859,9 @@ function selectSurface(mesh) {
     highlight.visible = true;
     const w = activeWood ? getWoodEntry(activeWood) : null;
     toastSel.style.display = 'flex';
-    selName.textContent = `👆 ${mesh.userData.surf}: ${shortName(mesh)}` + (w ? ` — bấm “${w.name}” trong bảng để áp` : ' — mở 🪵 và chọn vân gỗ');
+    selName.textContent = `${mesh.userData.surf}: ${shortName(mesh)}` + (w ? ` — “${w.name}” đã áp` : ' — chọn 🪵 vân gỗ để thay');
     if (w) applyWood(mesh);
+    updateSurfBar();
   } catch(err) { console.warn('selectSurface error:', err); }
 }
 $('selClose').addEventListener('click', () => {
@@ -891,13 +869,7 @@ $('selClose').addEventListener('click', () => {
 });
 $('undoOne').addEventListener('click', undoSelection);
 
-function togglePick(force) {
-  picking = force !== undefined ? force : !picking;
-  $('btnPick').classList.toggle('active', picking);
-  renderer.domElement.classList.toggle('selecting', picking);
-  if (picking && mode === 'walk') toggleWalk(false);
-}
-$('btnPick').addEventListener('click', () => togglePick());
+// Picker mode removed — surfaces selected via surfBar or direct click
 
 /* =========================================================
    ORBIT / WALK
@@ -932,7 +904,7 @@ function setMode(m) {
 function toggleWalk(force) {
   const want = force !== undefined ? force : mode !== 'walk';
   setMode(want ? 'walk' : 'orbit');
-  if (want && picking) togglePick(false);
+
 }
 $('btnWalk').addEventListener('click', () => toggleWalk());
 $('hudWalk').addEventListener('click', () => toggleWalk());
@@ -1054,7 +1026,7 @@ function updateDebugOverlay() {
     const lines = [
       `<b>Camera:</b> x=${p.x.toFixed(2)} y=${p.y.toFixed(2)} z=${p.z.toFixed(2)}`,
       `<b>Target:</b> x=${t?t.x.toFixed(2):'-'} y=${t?t.y.toFixed(2):'-'} z=${t?t.z.toFixed(2):'-'}`,
-      `<b>Mode:</b> ${mode} | <b>Picking:</b> ${picking}`,
+      `<b>Mode:</b> ${mode} | <b>Selected:</b> ${selected?selected.userData.surf:'none'}`,
       `<b>Controls:</b> ${controls?'enabled='+controls.enabled:'none'}`,
       `<b>Walk:</b> keys=${JSON.stringify(walk.keys)} yaw=${walk.yaw.toFixed(2)}`,
       `<b>Room:</b> ${roomBox?'min('+roomBox.min.x.toFixed(1)+','+roomBox.min.z.toFixed(1)+') max('+roomBox.max.x.toFixed(1)+','+roomBox.max.z.toFixed(1)+')':'unset'}`,
@@ -1079,7 +1051,7 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(container.clientWidth, container.clientHeight);
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && picking) togglePick(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && selected) { selected = null; highlight.visible = false; toastSel.style.display = 'none'; updateSurfBar(); } });
 
 $('btnReset').addEventListener('click', resetCam);
 $('hudReset').addEventListener('click', resetCam);
