@@ -140,16 +140,11 @@ body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; overf
 <div class="viewer" id="viewer">
   <div id="loading"><div class="spin"></div>Đang tải không gian 3D…</div>
 
-  <div class="tools">
-    <button class="tool active" id="btnOrbit" title="Xoay xung quanh"><span>🔄</span><span class="tip">Xoay quanh không gian</span></button>
-    <button class="tool" id="btnWalk" title="Đi bộ"><span>🚶</span><span class="tip">Đi bộ trong phòng (WASD)</span></button>
-    <button class="tool" id="btnReset" title="Đặt lại camera"><span>⌂</span><span class="tip">Đặt lại góc nhìn</span></button>
-    <button class="tool" id="btnShare" title="Chia sẻ"><span>🔗</span><span class="tip">Sao chép link chia sẻ vân gỗ đang chọn</span></button>
-  </div>
+  <!-- old tools removed — using .hud bar instead -->
 
   <button id="surfCabinet" style="position:absolute;top:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;backdrop-filter:blur(8px);z-index:15;transition:all .15s;">🗄️ Chọn Tủ Bếp</button>
 
-  <button id="woodOpen"><span class="dot"></span>🪵 Vật liệu gỗ</button>
+  <!-- woodOpen removed — using surfCabinet instead -->
   <div id="selToast"><span id="selName"></span><button class="x" id="selClose">✕</button></div>
   <div id="walkHint"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> di chuyển · chuột để nhìn · <kbd>ESC</kbd> thoát</div>
 
@@ -809,19 +804,23 @@ function applyWood(mesh) {
     const plankW = 0.35;
     const rx = Math.max(1, Math.round(faceW / plankW));
     const ry = Math.max(1, Math.round(faceH / (plankW * 2)));
-    // Hướng vân: ảnh gốc = vân ngang. Tủ đứng cần vân dọc → xoay texture 90°
+    // Hướng vân: ảnh gốc = vân ngang. Tủ cần vân dọc → xoay 90°
     const isVertical = /tủ|kệ|door|cabinet|madera|wood_/.test(surf);
-    const needRotate = (isVertical && faceH > faceW) !== !!mesh.userData.grainRot;
+    // Tủ luôn vân dọc, sàn/ngang vân ngang, user override bằng grainRot
+    const needRotate = isVertical !== !!mesh.userData.grainRot;
     const srcTex = getOrLoadTexture(w.tex);
-    const tex = srcTex ? srcTex.clone() : null;
+    // Tạo texture mới từ image (không clone) → tránh shared GPU state
+    const tex = srcTex ? new THREE.Texture(srcTex.image) : null;
     if (tex) {
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
       tex.repeat.set(rx, ry);
       // XOAY texture 90° quanh tâm → vân chạy dọc
       tex.center.set(0.5, 0.5);
       tex.rotation = needRotate ? Math.PI / 2 : 0;
       tex.needsUpdate = true;
+      console.log(`[WOOD] ${shortName(mesh)} rot=${(tex.rotation*180/Math.PI).toFixed(0)}° repeat=${rx.toFixed(1)}x${ry.toFixed(1)} fw=${faceW.toFixed(2)} fh=${faceH.toFixed(2)} vert=${isVertical} rot=${needRotate}`);
     }
     mat.map = tex;
   } else {
@@ -901,7 +900,7 @@ function applySharedWood() {
   $('woodPanel').classList.add('open');
 }
 
-$('btnShare').addEventListener('click', shareWoodUrl);
+if ($('btnShare')) $('btnShare').addEventListener('click', shareWoodUrl);
 
 // Surf button — click Tủ Bếp → select mesh + mở wood panel
 const CHANGEABLE_SURFS = ['Tủ bếp dưới'];
@@ -975,8 +974,8 @@ function setMode(m) {
     mode = m;
     $('hudOrbit').classList.toggle('active', m === 'orbit');
     $('hudWalk').classList.toggle('active', m === 'walk');
-    $('btnOrbit').classList.toggle('active', m === 'orbit');
-    $('btnWalk').classList.toggle('active', m === 'walk');
+    if ($('btnOrbit')) $('btnOrbit').classList.toggle('active', m === 'orbit');
+    if ($('btnWalk')) $('btnWalk').classList.toggle('active', m === 'walk');
     renderer.domElement.classList.toggle('walking', m === 'walk');
     $('walkHint').style.display = m === 'walk' ? 'block' : 'none';
     if (m === 'walk') {
@@ -1002,9 +1001,9 @@ function toggleWalk(force) {
   setMode(want ? 'walk' : 'orbit');
 
 }
-$('btnWalk').addEventListener('click', () => toggleWalk());
+if ($('btnWalk')) $('btnWalk').addEventListener('click', () => toggleWalk());
 $('hudWalk').addEventListener('click', () => toggleWalk());
-$('btnOrbit').addEventListener('click', () => toggleWalk(false));
+if ($('btnOrbit')) $('btnOrbit').addEventListener('click', () => toggleWalk(false));
 $('hudOrbit').addEventListener('click', () => toggleWalk(false));
 
 // Đi bộ WASD
@@ -1222,10 +1221,12 @@ $('hudGrain').addEventListener('click', () => {
   }
   selected.userData.grainRot = !selected.userData.grainRot;
   $('hudGrain').classList.toggle('active', selected.userData.grainRot);
+  // Dispose material cũ + texture → tránh leak GPU memory
   const oldMat = selected.material;
+  if (oldMat && oldMat.map) { oldMat.map.dispose(); }
+  if (oldMat) { oldMat.dispose(); }
   selected.material = null;
   applyWood(selected);
-  if (oldMat && oldMat !== selected.material) { oldMat.map?.dispose(); oldMat.dispose(); }
   $('wpTarget').textContent = `↕ Vân ${selected.userData.grainRot ? 'dọc' : 'ngang'} — bấm lại để đổi.`;
   $('wpTarget').style.color = '#fde68a';
 });
@@ -1245,7 +1246,7 @@ window.addEventListener('resize', () => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && selected) { selected = null; highlight.visible = false; toastSel.style.display = 'none'; updateSurfBar(); } });
 
-$('btnReset').addEventListener('click', resetCam);
+if ($('btnReset')) $('btnReset').addEventListener('click', resetCam);
 $('hudReset').addEventListener('click', resetCam);
 function resetCam() {
   if (mode === 'walk') setMode('orbit');
@@ -1331,7 +1332,6 @@ document.addEventListener('mousemove', e => {
   } catch(err) {}
 });
 
-if ($('woodOpen')) $('woodOpen').addEventListener('click', () => $('woodPanel').classList.toggle('open'));
 if ($('closePanel')) $('closePanel').addEventListener('click', () => $('woodPanel').classList.remove('open'));
 
 renderer.domElement.addEventListener('pointerdown', onPointerDown);
